@@ -1,0 +1,198 @@
+(()=>{
+'use strict';
+if(window.COLONYRendererPulls) return;
+const V='COLONYRendererPulls/0.2.0';
+const K='colony.renderer.pulls.v1';
+const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ID=()=>`rp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const pct=n=>Math.round(clamp(n,0,100));
+const FAMILIES=[
+  {id:'three-lean',name:'Lean Three',live:true,desc:'Three/WebGL profile focused on low render cost.'},
+  {id:'three-balanced',name:'Balanced Three',live:true,desc:'Three/WebGL profile balancing quality and frame time.'},
+  {id:'three-sightline',name:'Sightline Three',live:true,desc:'Three/WebGL profile biased toward long-range readability.'},
+  {id:'three-shadowcut',name:'ShadowCut Three',live:true,desc:'Three/WebGL profile trading shadow cost for frame stability.'},
+  {id:'webgpu-custom',name:'Custom WebGPU',live:false,desc:'Backend-neutral WebGPU challenger behind moor.render/1.'},
+  {id:'webgpu-wasm',name:'WebGPU + WASM',live:false,desc:'WASM CPU preparation with WebGPU presentation.'},
+  {id:'gpu-driven',name:'GPU-Driven Dense World',live:false,desc:'GPU-driven dense-world renderer candidate.'},
+  {id:'webgl2-custom',name:'Lean Custom WebGL2',live:false,desc:'Purpose-built WebGL2 subset for MOOR render packets.'}
+];
+const PREFIX=['Aether','Titan','Velocity','Obsidian','Nova','Zero','Ghost','Atlas','Vanta','Hyper','Arc','Pulse','Cinder','Ion','Drift','Forge'];
+const SUFFIX=['Rend','Sight','Frame','Core','Glass','Ray','Flux','Draw','View','Mesh','Lumen','Vector','Prime','Edge','Grid','Wave'];
+let S;
+try{S={saved:[],...JSON.parse(localStorage.getItem(K)||'{}')}}catch{S={saved:[]}}
+let current=null,W=null,z=8100,monitor=null,scoreTimer=null;
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch{}};
+
+function css(){
+  if(document.querySelector('#rpullcss')) return;
+  const s=document.createElement('style');s.id='rpullcss';
+  s.textContent=`
+  .rpw{width:min(1160px,calc(100vw - 24px))!important;height:min(780px,calc(100vh - 70px))!important;left:50%!important;top:42px!important;transform:translateX(-50%)!important}
+  .rpw .cbb{padding:0!important;overflow:hidden!important}
+  .rplayout{display:grid;grid-template-columns:minmax(310px,.9fr) minmax(420px,1.4fr);height:100%}
+  .rppull{padding:14px;border-right:1px solid #ffffff13;overflow:auto;background:#111519}
+  .rplib{padding:14px;overflow:auto;background:#15191d}
+  .rph{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rph h2{margin:0;font-size:20px}.rpsub{color:#8f99a1;font:600 10px/1.45 system-ui}
+  .rpbtn{border:1px solid #ffffff22;border-radius:9px;background:#242a30;color:white;padding:9px 11px;font:800 9px system-ui;cursor:pointer}.rpbtn.p{background:#f2f4f5;color:#111}.rpbtn.d{background:#30191d;color:#ffc6cf}.rpbtn:disabled{opacity:.45;cursor:not-allowed}
+  .rprandom{width:100%;padding:15px;font-size:13px;margin:12px 0;background:#f3f5f6;color:#111;border:0;border-radius:12px;font-weight:950;letter-spacing:.04em}
+  .rppullcard{border:1px solid #ffffff19;background:#191e23;border-radius:14px;padding:13px;min-height:250px}
+  .rptop{display:flex;justify-content:space-between;gap:10px}.rpname{font-size:22px;font-weight:900;line-height:1.05}.rpfam{color:#8f99a1;font:800 8px system-ui;letter-spacing:.08em;text-transform:uppercase;margin-top:5px}
+  .rpscore{font-size:38px;font-weight:950;line-height:.9;text-align:right}.rpscore small{display:block;color:#8f99a1;font:800 7px system-ui;margin-top:7px}.rprarity{display:inline-block;margin-top:8px;border:1px solid #ffffff25;border-radius:20px;padding:5px 8px;font:900 8px system-ui;letter-spacing:.08em}
+  .rpmetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px}.rpm{background:#101418;border-radius:8px;padding:7px;text-align:center}.rpm b{display:block;font-size:13px}.rpm span{display:block;color:#879199;font:800 7px system-ui;margin-top:3px}
+  .rpspec{margin-top:10px;color:#aab2b8;font:600 10px/1.5 system-ui}.rpspec code{color:#fff}
+  .rpactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+  .rpsearch{width:100%;box-sizing:border-box;border:1px solid #ffffff20;border-radius:10px;background:#101418;color:white;padding:10px;margin:10px 0;outline:0}
+  .rplist{display:grid;gap:7px}.rprow{border:1px solid #ffffff14;border-radius:11px;background:#191e22;padding:9px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}.rprow h3{margin:0;font-size:13px}.rprow .meta{color:#8f99a1;font:600 9px/1.4 system-ui;margin-top:3px}.rprow .score{font-weight:950;font-size:16px;text-align:right}.rprow .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;grid-column:1/-1}.rprow .acts button{padding:6px 8px;font-size:8px}
+  .rpstatus{padding:7px 9px;border:1px solid #ffffff14;border-radius:9px;background:#101418;color:#9ea8af;font:700 9px system-ui;margin-top:8px}
+  .rpmask{position:absolute;inset:0;background:#0009;display:grid;place-items:center;z-index:9500}.rpmodal{width:min(520px,calc(100vw - 30px));background:#171c20;border:1px solid #ffffff23;border-radius:14px;padding:14px}.rpmodal h3{margin:0 0 8px}.rpmodal select,.rpmodal input{width:100%;box-sizing:border-box;background:#101418;color:white;border:1px solid #ffffff20;border-radius:9px;padding:10px;margin:6px 0 10px}
+  @media(max-width:760px){.rplayout{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}.rppull{border-right:0;border-bottom:1px solid #ffffff13}.rpw{height:calc(100vh - 70px)!important}.rpmetrics{grid-template-columns:1fr 1fr}}
+  `;
+  document.head.appendChild(s);
+}
+function win(){
+  css();
+  const w=document.createElement('section');w.className='cbs rpw';w.style.zIndex=++z;
+  w.innerHTML=`<header class="cbh"><div class="cbt">Renderer Pulls</div><div class="cbk">${V}</div><div class="cba"><button data-rp=min>—</button><button data-rp=max>□</button><button data-rp=x>×</button></div></header><main class="cbb"></main>`;
+  document.body.appendChild(w);
+  w.querySelector('[data-rp=x]').onclick=()=>{clearInterval(scoreTimer);scoreTimer=null;w.remove();W=null};
+  w.querySelector('[data-rp=max]').onclick=()=>w.classList.toggle('max');
+  w.querySelector('[data-rp=min]').onclick=()=>{w.classList.add('min');const d=document.querySelector('.cbdock');if(d){const b=document.createElement('button');b.textContent='Renderer Pulls';b.onclick=()=>{w.classList.remove('min');b.remove()};d.appendChild(b)}};
+  return w;
+}
+function cityFrame(){
+  const fs=[...document.querySelectorAll('iframe')].filter(f=>/moor-city/i.test(String(f.src||f.getAttribute('src')||'')));
+  return fs[0]||null;
+}
+function cityWindow(){try{return cityFrame()?.contentWindow||null}catch{return null}}
+function ensureCity(){
+  let f=cityFrame();if(f)return Promise.resolve(f);
+  try{window.COLONYBlankShell?.openApp?.({id:'moor'})}catch{}
+  return new Promise(resolve=>{let n=0;const t=setInterval(()=>{const x=cityFrame();if(x||++n>40){clearInterval(t);resolve(x||null)}},150)});
+}
+function quantile(a,q){
+  if(!a.length)return null;const b=[...a].sort((x,y)=>x-y),i=Math.min(b.length-1,Math.max(0,Math.floor((b.length-1)*q)));return b[i];
+}
+function median(a){return quantile(a,.5)}
+function adapterFor(c,app){
+  try{return window.COLONYRendererAdapters?.resolve?.(c,app)||null}catch{return null}
+}
+function stopActiveAdapter(){
+  try{window.COLONYRendererAdapters?.stopActive?.()}catch{}
+}
+function adapterMetrics(session,base){
+  try{const m=session?.getMetrics?.()||session?.getTelemetry?.()||null;if(!m)return null;return {...m,baseCalls:base?.calls??m.baseCalls??null,baseHeap:base?.heap??m.baseHeap??null}catch{return null}
+}
+function startMonitor(cw)){
+  if(!cw��}function baseline(cw){
+  if(!cw)return null;if(cw.__COLONY_RENDER_PULL_BASELINE)return cw.__COLONY_RENDER_PULL_BASELINE;
+  try{const r=cw.__MOOR_RENDER_CONTEXT?.renderer,b={pixelRatio:r?.getPixelRatio?.()??null,shadowEnabled:!!r/.shadowMap?.enabled,shadowType:r?.shadowMap?.type??null,exposure:r?.toneMappingExposure??null,calls:r?.info?.render?.calls??null,triangles:r?.info?.render?.triangles??null,heap:cw.performance?.memory?.usedJSHeapSize??null};cw.__COLONY_RENDER_PULL_BASELINE=b;return b}catch{return null}
+}
+function applyCandidate(c,cw){
+  if(!c.live)return false;const r=cw?.__MOOR_RENDER_CONTEXT?.renderer;if(!r)return false;baseline(cw);startMonitor(cw);
+  try{if(r.setPixelRatio&&c.params.pixelRatioCap)r.setPixelRatio(Math.min(cw.devicePixelRatio||1,c.params.pixelRatioCap));if(r.shadowMap){r.shadowMap.enabled=!!c.params.shadows;r.shadowMap.type=c.params.shadowType;r.shadowMap.needsUpdate=true}if('toneMappingExposure'in r)r.toneMappingExposure=c.params.exposure;c.activeAt=new Date().toISOString();return true}catch{return false}
+}
+function readMetrics(cw){
+  const M=cw?.__COLONY_RENDER_PULL_MONITOR;if(!M)return null;const frames=M.frames.slice(-180),renders=M.renders.slice(-180);if(frames.length<20)return{warming:true,samples:frames.length};const r=cw.__MOOR_RENDER_CONTEXT?.renderer,b=baseline(cw);return{samples:frames.length,frameP95:quantile(frames,.95),frameP99:quantile(frames,.99),fps:median(frames)?1000/median(frames):null,renderCpuP95:quantile(renders,.95),calls:r?.info?.render?.calls??null,triangles:r?.info?.render?.triangles??null,heap:cw.performance?.memory?.usedJSHeapSize??null,errors:M.errors,baseCalls:b?.calls??null,baseHeap:b?.heap??null,longFrameRatio:frames.filter(x=>x>25).length/Math.max(1,frames.length),coverage:1}
+}
+function score(m){
+  if(!m||m.warming||!Number.isFinite(m.frameP95))return null;
+  const fs=pct(100-Math.max(0,m.frameP95-16.67)*3.1),rs=Number.isFinite(m.renderCpuP95)?pct(100-Math.max(0,m.renderCpuP95-2)*8):null,longRatio=Number.isFinite(m.longFrameRatio)?m.longFrameRatio:((Monitor?.frames||[]).slice(-180).filter(x=>x>25).length/Math.max(1,(monitor?.frames||[]).slice(-180).length)),ss=pct(100-longRatio*240-(m.errors||0)*10),ds=Number.isFinite(m.calls)&&Number.isFinite(m.baseCalls)&&m.calls>0?pct(100*(m.baseCalls/m.calls)):null,hs=Number.isFinite(m.heap)&&Number.isFinite(m.baseHeap)&&m.heap>0?pct(100*(m.baseHeap/m.heap)):null,cov=Number.isFinite(m.coverage)?pct(m.coverage*100):null,parts=[[fs,.35],[rs,.22],[ss,.15],[ds,.08],[hs,.05],[cov,.15]].filter(x=>Number.isFinite(x[0])),wt=parts.reduce((a,x)=>a+x[1],0);let out=pct(parts.reduce((a,x)=>a+x[0]*x[1],0)/wt);if(Number.isFinite(m.coverage)&&m.coverage<.95)out=Math.min(out,pct(m.coverage*100));return out;
+}
+function rarity(s){if(!Number.isFinite(s))return'UNTESTED';if(s>=95)return'LEGENDARY';if(s>=90)return'EXOTIC';if(s>=80)return'EPIC';if(s>=65)return'RARE';return'COMMON'}
+function generate(){
+  const live=Math.random()<.72,fam=pick(FAMILIES.filter(x=>x.ive===live)),c={id:ID(),createdAt:new Date().toISOString(),name:`${pick(PREFIX)} ${pick(SUFFIX)} ${Math.floor(Math.random()*900+100)}`,familyId:fam.id,family:fam.name,description:fam.desc,live:fam.live,contract:'moor.render/1',compatibleApps:fam.live?['moor.city.island','moor.city']:[],params:{pixelRatioCap:pick([.8,.9,1,1.1,1.2,1.3,1.45,1.6]),shadows:Math.random()>.25,shadowType:pick([0,1,2]),exposure:pick([.9,.95,1,1.05,1.1])},lastScore:null,lastMetrics:null};current=c;render();if(c.live)runCandidate(c,'moor.city.island',true);return c;
+}
+function renderPull(){
+  if(!current)return`<div class="rppullcard" style="display:grid;place-items:center;text-align:center"><div><div style="font-size:44px">?</div><div class="rpsub">Press RANDOM to generate a renderer challenger.</div></div></div>`;
+  const m=current.lastMetrics||{},s=current.lastScore,rar=rarity(s);
+  const adapted=!!current.adapterId,liveLabel=adapted?'ADAPTER-LIVE':(current.live?'LIVE-COMPATIBLE':'SPEC-ONLY');
+  return`<div class="rppullcard"><div class="rptop"><div><div class="rpname">${E(current.name)}</div><div class="rpfam">${E(current.family)} · ${E(liveLabel)}</div><span class="rprarity">${rar}</span></div><div class="rpscore">${Number.isFinite(s)?s:'--'}<small>/100 LIVE PERFORMANCE</small></div></div><div class="rpmetrics"><div class="rpm"><b>${Number.isFinite(m.fps)?m.fps.toFixed(0):'--'}</b><span>FPS</span></div><div class="rpm"><b>${Number.isFinite(m.frameP95)?m.frameP95.toFixed(1):'--'}</b><span>FRAME P95 MS</span></div><div class="rpm"><b>${Number.isFinite(m.renderCpuP95)?m.renderCpuP95.toFixed(2):'--'}</b><span>RENDER CPU P95</span></div><div class="rpm"><b>${Number.isFinite(m.calls)?m.calls:'--'}</b><span>DRAW CALLS</span></div><div class="rpm"><b>${Number.isFinite(m.triangles)?m.triangles.toLocaleString():'--'}</b><span>TRIANGLES</span></div><div class="rpm"><b>${m.samples||0}</b><span>SAMPLES</span></div></div><div class="rpspec">Pixel ratio cap <code>${current.params.pixelRatioCap}</code> · shadows <code>${current.params.shadows?'ON':'OFF'}</code> · shadow mode <code>${current.params.shadowType}</code> · exposure <code>${current.params.exposure}</code><br>${E(current.description)}</div><div class="rpactions"><button class="rpbtn p" data-save-current>SAVE THIS PULL</button><button class="rpbtn" data-run-current>RUN</button><button class="rpbtn" data-copy-current>COPY SPEC</button></div></div>`;
+}
+function renderLibrary(q){
+  const n=(q||'').toLowerCase(),a=S.saved.filter(x=>`x.scorers ${x.name} ${x.family} ${x.id} ${x.compatibleApps?.join(' ')||'}`.toLowerCase().includes(n));
+  if(!a.length)return'<div class="rpsub">No saved renderers match.</div>';
+  return`<div class="rplist">${a.map((x,i)=>`<div class="rprow" data-id="${E(x.id)}"><div><h3>${E(x.name)}</h3><div class="meta">${E(x.family)} · ${x.live?(x.adapterId?'ADAPTER-LIVE':'LIVE'):'UNTESTED'} · ${E(x.compatibleApps?.join(', ')||'no app adapter')}</div></div><div class="score">${Number.isFinite(x.lastScore)?x.lastScore:'--'}</div><div class="acts"><button class="rpbtn" data-act="run">RUN</button><button class="rpbtn" data-act="up" ${i===0?'disabled':'}>↑</button><button class="rpbtn" data-act="down" ${i===a.length-1?'disabled':'}>↓</button><button class="rpbtn d" data-act="delete">DELETE</button></div></div>`).join('')}</div>`;
+}
+function render(){
+  if(!W)return;const m=W.querySelector('.cbb');
+  m.innerHTML=`<div class="rplayout"><section class="rppull"><div class="rph"><div><div class="rpsub">MOOR RENDER CONTRACT  · CITY ISLAND LIVE HARNESS</div><h2>Renderer Pulls</h2></div><button class="rpbtn" data-tournament style="margin-left:auto">TOURNAMENT SPEC</button></div><button class="rprandom" data-random>RANDOM RENDERER</button><div data-pull>${renderPull()}</div></section><section class="rplib"><div class="rph"><div><div class="rpsub">KEEP ONLY THE PULLS YOU CARE ABOUT</div><h2>Saved Renderers</h2></div><div class="rpsub" style="margin-left:auto">${S.saved.length} SAVED</div></div><input class="rpsearch" data-search placeholder="Search saved renderers…"><div data-library>${renderLibrary('')}</div></section></div>`;
+  m.querySelector('[data-random]').onclick=generate;
+  m.querySelector('[data-tournament]').onclick=()=>window.COLONYRendererTournament?.open?.();
+  const sc=m.querySelector('[data-search]');sc.oninput=()=>{m.querySelector('[data-library]').innerHTML=renderLibrary(sc.value);wireLibrary()};
+  m.querySelector('[data-save-current]')?.addEventListener('click',saveCurrent);
+  m.querySelector('[data-run-current]')?.addEventListener('click',()=>chooseApp(current));
+  m.querySelector('[data-copy-current]')?.addEventListener('click',()=>copyText(JSON.stringify(current,null,2)));
+  wireLibrary();
+}
+function wireLibrary(){
+  if(!W)return;W.querySelectorAll('.rprow').forEach(row=>{const id=row.dataset.id;row.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>libAction(id,b.dataset.act))});
+}
+function saveCurrent(){
+  if(!current)return;if(!S.saved.some(x=>x.id===current.id))S.saved.unshift(JSON.parse(JSON.stringify(current)));save();render();
+}
+function libAction(id,act){
+  const i=S.saved.findIndex(x=>x.id===id);if(i<0)return;
+  if(act==='delete'){S.saved.splice(i,1);save();render();return}
+  if(act==='up'&&i>0){[S.saved[i-1],S.saved[i]]=[S.saved[i],S.saved[i-1]];save();render();return}
+  if(act==='down'&&i<S.saved.length-1){[S.saved[i+1],S.saved[i]]=[S.saved[i],S.saved[i+1]];save();render();return}
+  if(act==='run'){current=S.saved[i];render();chooseApp(current)}
+}
+function chooseApp(c){
+  if(!W||!c)return;const mask=document.createElement('div');mask.className='rpmask';
+  mask.innerHTML=`<div class="rpmodal"><h3>Run ${E(c.name)}</h3><div class="rpsub">Choose the app/runtime to test against.</div><select data-app><option value="moor.city.island">City Island</option><option value="moor.city">MOOR City</option><option value="moor.light.app">MOOR Light App</option><option value="custom">Custom app ID…</option></select><input data-custom placeholder="Custom app ID" style="display:none"><div class="rpactions"><button class="rpbtn p" data-go>RUN</button><button class="rpbtn" data-cancel>CANCEL</button></div></div>`;
+  W.appendChild(mask);const sel=mask.querySelector('[data-app]'),cust=mask.querySelector('[data-custom]');
+  sel.onchange=()=>cust.style.display=sel.value==='custom'?'block':'none';
+  mask.querySelector('[data-cancel]').onclick=()=>mask.remove();
+  mask.querySelector('[data-go]').onclick=()=>{const app=sel.value==='custom'?(cust.value.trim()||'custom.app'):sel.value;mask.remove();runCandidate(c,app,false)};
+}
+async function runCandidate(c,app,auto){
+  const adapter=adapterFor(c,app);
+  const compatible=!!adapter||(c.live&&c.compatibleApps.includes(app));
+  if(!compatible){const p=compatPrompt(c,app),ok=await copyText(p);if(!auto)notice(ok?'Compatibility prompt copied for GPT.':'Could not copy automatically; prompt opened.',p);return}
+  const f=await ensureCity(),cw=f?.contentWindow||null;
+  if(!cw){if(!auto)notice('City Island is not open. Open MOOR City and try RUN again.');return}
+  clearInterval(scoreTimer);scoreTimer=null;
+  stopActiveAdapter();
+  const base=baseline(cw);
+  let adapterSession=null;
+  if(adapter){
+    try{adapterSession=await window.COLONYRendererAdapters.start(adapter,c,app,cw)}catch(err){console.error('[Renderer Pulls adapter]',err);if(!auto)notice(`Adapter failed: ${err?.message||err}`);return}
+    c.live=true;c.adapterId=adapter.id;c.compatibleApps=[...new Set([...(c.compatibleApps||[]),app])];c.activeAt=new Date().toISOString();
+  }else{
+    monitor=startMonitor(cw);
+    if(!applyCandidate(c,cw)){if(!auto)notice('Renderer context is not ready yet.');return}
+  }
+  current=c;render();
+  scoreTimer=setInterval(()=>{
+    const liveCw=cityWindow();if(!liveCw||!current?.liveyreturn;
+    let m;
+    if(adapterSession){m=adapterMetrics(adapterSession,base)}else{monitor=liveCw.__COLONY_RENDER_PULL_MONITOR;m=readMetrics(liveCw)}
+    const s=score(m);current.lastMetrics=m;current.lastScore=s;
+    const si=S.saved.findIndex(x=>x.id===current.id);if(si>=0){S.saved[si]={...S.saved[si],...JSON.parse(JSON.stringify(current))};save()}
+    if(W)render();
+  },1000);
+}
+
+function compatPrompt(c,app){
+  return`Implement a compatible renderer adapter/challenger for MOOR app "${app}".\n\nCandidate:\n${JSON.stringify(c,null,2)}\n\nRequirements:\n- Public contract: moor.render/1 only; app/gameplay code must not depend on candidate-private APIs.\n- Preserve gameplay truth, persistence, physics, player state, economy, inventory and world-generation truth.\n- Integrate behind the Renderer Tournament compatibility seam so COLONY Renderer Pulls can RUN this candidate against the selected app.\n- Expose the runtime renderer through the existing MOOR render context/adapter contract and mandatory performance telemetry.\n- Support deterministic RenderReplay where available.\n- Make installation a normal COLONY update, not a manual ZIP.\n- Do not claim performance until measured on the actual City/app harness.\n- On completion, register compatibility for app ID \"${app}\" and return the exact update version and test instructions.\n\nUse the existing MOOR Renderer Tournament spec and current Champion as the baseline.`;
+}
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);return true}catch{}
+  try{const a=document.createElement('textarea');a.value=t;a.style.position='absolute';a.style.left='-9999px';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch{return false}
+}
+function notice(msg,promptText){
+  if(!W)return;const mask=document.createElement('div');mask.className='rpmask';mask.innerHTML=`<div class="rpmodal"><h3>${E(msg)}</h3>${promptText?`<textarea style="width:100%;height:220px;background:#101418;color:white;border:1px solid #ffffff20;border-radius:9px;padding:8px;box-sizing:border-box">${E(promptText)}</textarea>`:''}<div class="rpactions"><button class="rpbtn p" data-ok>OK</button></div></div>`;W.appendChild(mask);mask.querySelector('[data-ok]').onclick=()=>mask.remove();
+}
+async function open(){
+  if(W&&document.body.contains(W)){W.style.zIndex=++z;return W}
+  W=win();render();return W;
+}
+function bridge(){
+  const add=()=>{const i=document.querySelector('.cbin');if(!i||i.dataset.rpull)return;i.dataset.rpull='1';i.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const q=i.value.trim().toLowerCase();if(!['renderer pulls','renderer gacha','renderer app','random renderer','render pulls'].includes(q))return;e.preventDefault();e.stopImmediatePropagation();i.value='';document.querySelector('.cbres')?.classList.remove('on');open().then(()=>{if(q==='random renderer')generate()})},true)};
+  add();new MutationObserver(add).observe(document.documentElement,{subtree:true,childList:true});
+}
+window.COLONYRendererPulls={version:V,open,random:generate,getState:()=>JSON.parse(JSON.stringify(S)),run:(id,app='moor.city.island')=>{const c=S.saved.find(x=>x.id===id)||current;if(c)return runCandidate(c,app,false)},refreshCompatibility:()=>{try{const disk=JSON.parse(localStorage.getItem(K)||'{}');if(Array.isArray(disk.saved))S.saved=disk.saved}catch{};render();return JSON.parse(JSON.stringify(S))}};
+bridge();
+})();
