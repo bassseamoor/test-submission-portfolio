@@ -1,28 +1,27 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "30.0.0",
-  "published_at": "2026-09-05T05:08:00Z",
+  "version": "30.1.0",
+  "published_at": "2026-09-05T05:15:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "COLONY now opens as a blank one-color command surface with one outlined search/command bar.",
-    "Apps and information are summoned into one standardized tab/window model with minimize, maximize, close, list, grid, graph, document and runtime views.",
-    "Added a visible App Builder: choose a source and display mode, watch the preview assemble, then save the app for instant recall by name.",
-    "MOOR City opens as an embedded runtime surface; Continuity, Renderer, ChatGPT and Updates remain summonable by typing their names.",
-    "Wallpaper and saved app state persist locally; private COLONY project data is not published in this update."
+    "City Island request shortcut: press backslash while playing MOOR City inside COLONY.",
+    "COLONY captures a fresh MOOR City render and opens a standardized screenshot + text request tab.",
+    "Submitted requests are stored in IndexedDB with the screenshot Blob and are also routed into MOOR City Continuity/update context.",
+    "The shortcut ignores backslash while typing in inputs, textareas, selects, or editable text."
   ],
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "c423f74195b5e69ea09f6e39d881ea80d71a95b8e118a1a0883142057e13c71f",
-      "bytes": 384,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.0.0/update/colony-loader.js"
+      "sha256": "362ab37b5422c53e01af2fd5e53c84db31dd4094b34a426cb934bf072a33389f",
+      "bytes": 680,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.1.0/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "9fdf9a3efac240e08f2918051b742a65c7fc68fb9ecb48ac9c1ed9035989d53e",
-      "bytes": 737,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.0.0/colony-runtime-manifest.json"
+      "sha256": "7d573533e3d9b249bc5e91b49f61e734be84772956fe05c44d8d3620f31f2bf0",
+      "bytes": 733,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.1.0/colony-runtime-manifest.json"
     }
   ],
   "delete": []
