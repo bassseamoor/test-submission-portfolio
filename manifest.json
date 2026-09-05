@@ -1,0 +1,27 @@
+{
+  "schema": "colony.moor.update/1",
+  "channel": "stable",
+  "version": "29.0.1",
+  "published_at": "2026-09-05T04:45:00Z",
+  "minimum_updater": "1.0.0",
+  "release_notes": [
+    "Activated the permanent COLONY/MOOR self-update channel.",
+    "Verified delta updates now install from inside COLONY without manual ZIP downloads.",
+    "Added an on-disk marker proving the first self-update completed."
+  ],
+  "files": [
+    {
+      "path": "UPDATE-CHANNEL-ACTIVE.txt",
+      "sha256": "cff808e9c8758eacbc2e335ded0f2e6a6d1ad52d098a69b7724965f39cbd55db",
+      "bytes": 124,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/29.0.1/UPDATE-CHANNEL-ACTIVE.txt"
+    },
+    {
+      "path": "colony-runtime-manifest.json",
+      "sha256": "3b4976107b964930210688123769712255686026644c48bfb76195b3d183d552",
+      "bytes": 700,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/29.0.1/colony-runtime-manifest.json"
+    }
+  ],
+  "delete": []
+}

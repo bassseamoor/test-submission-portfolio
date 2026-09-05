@@ -1,0 +1,16 @@
+{
+  "product": "COLONY + MOOR Continuity Runtime",
+  "colony_version": "29.0.1",
+  "moor_city_version": "5.1.4-b63+continuity-v1",
+  "entry": "/COLONY.html",
+  "moor_entry": "/moor-city/index.html",
+  "preferred_port": 39501,
+  "runtime_bridge": "COLONYRuntimeBridge/1.1.0",
+  "continuity_bridge": "COLONYContinuity/1.0.0",
+  "local_node_api": "MOORContinuityLocalNode/1.0.0",
+  "updater": "COLONYUpdater/1.0.0",
+  "update_channel": "stable",
+  "update_manifest": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/manifest.json",
+  "continuity_data": "%LOCALAPPDATA%\\COLONY-MOOR-DATA\\continuity",
+  "update_data": "%LOCALAPPDATA%\\COLONY-MOOR-DATA\\updates"
+}

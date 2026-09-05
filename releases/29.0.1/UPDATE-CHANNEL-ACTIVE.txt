@@ -1,0 +1,3 @@
+COLONY self-update channel is active.
+This file was installed by COLONY itself from the pinned update feed.
+Version: 29.0.1
