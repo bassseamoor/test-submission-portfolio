@@ -1,30 +1,31 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "32.1.1",
-  "published_at": "2026-09-05T06:53:00Z",
+  "version": "32.1.2",
+  "published_at": "2026-09-05T06:59:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "Pulse Glass 141 (rp-mtnzjxi3-kkbrk) is now registered as an experimental moor.render/1 WebGL2 challenger for moor.city.island.",
-    "The challenger draws through a separate WebGL2 surface while the Legacy Three renderer object remains intact for gameplay/input compatibility and instant rollback.",
-    "Renderer Pulls RUN is bridged to the Pulse Glass adapter and writes its first real 0-100 score only from measurements collected on your City Island runtime.",
-    "Telemetry includes frame p95/p99, renderer CPU p95, draw calls, triangles, resource/upload bytes, errors, scene coverage, unsupported-object count, and mandatory moor.render telemetry fields; unavailable GPU timing is explicitly reported UNAVAILABLE.",
+    "Pulse Glass 141 (rp-mtnzjxi3-kkbrk) is registered as an experimental moor.render/1 Lean Custom WebGL2 challenger for moor.city.island.",
+    "The challenger renders on a separate WebGL2 canvas while the Legacy Three renderer object remains alive for current gameplay/input plumbing and instant rollback.",
+    "Renderer Pulls RUN now measures Pulse Glass only on the actual City Island runtime; no performance score is prefilled or claimed by this release.",
+    "Telemetry includes frame p95/p99, renderer CPU p95, draw calls, triangles, resource/upload bytes, errors, scene coverage, unsupported-object count, and the mandatory moor.render telemetry fields where measurable; unavailable GPU timing is explicitly UNAVAILABLE.",
     "RenderReplay delegates to the City replay service when present and reports unsupported when that service is absent.",
-    "Pulse Glass v0.1.1 does not yet fully implement textures, shadows, sprites/LOD, BatchedMesh, transparent multi-material fidelity, or fog; coverage penalties cap its score rather than hiding missing presentation features.",
-    "32.1.1 supersedes the transient 32.1.0 package and uses byte-verified immutable renderer modules."
+    "Pulse Glass v0.1.2 does not yet fully implement textures, shadows, Sprite/LOD, BatchedMesh, transparent or multi-material fidelity, or fog; coverage penalties cap its live score rather than hiding missing presentation features.",
+    "Running any different renderer pull first stops Pulse Glass and restores the Legacy Three draw path before the next candidate starts.",
+    "32.1.2 supersedes transient 32.1.0 and 32.1.1 and publishes byte-verified immutable Pulse Glass modules."
   ],
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "5f0b86ce818abcd25fe4e102496b1bc8fd7b99858f1d6b9f06f06283fde9fd5c",
+      "sha256": "c084e35bf62ada8e7beb528f8892f820e0f233d9c83575dab3c0decc990fdebd",
       "bytes": 1688,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.1/update/colony-loader.js"
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.2/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "0144fa66f9e3ee6e38068271c86ac323b1bd41509569895dff26fdd541241abd",
+      "sha256": "5e633068d51cac2b3c6fcd72971d6a026daf34dd41c9b1cbbe339e37b0cae350",
       "bytes": 1203,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.1/colony-runtime-manifest.json"
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.2/colony-runtime-manifest.json"
     }
   ],
   "delete": []
