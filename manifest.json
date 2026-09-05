@@ -1,27 +1,28 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "32.1.4",
-  "published_at": "2026-09-05T07:15:00Z",
+  "version": "32.1.5",
+  "published_at": "2026-09-05T07:23:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "Renderer Pulls is now draggable from its title bar like normal COLONY windows.",
-    "Pulse Glass RUN now behaves as RUN & PLAY: City Island opens or comes to the front, Renderer Pulls minimizes to the dock, and the live score keeps updating while you play.",
-    "A small Pulse Glass score HUD stays visible over COLONY during the play test; click it to reopen Renderer Pulls.",
-    "Pulse Glass remains experimental/unbenchmarked and still uses only measured City Island metrics for its score."
+    "Pulse Glass visual correctness fix: the unstable custom line primitive path is now suppressed instead of producing catastrophic radial geometry.",
+    "Suppressed line objects are restored automatically when Pulse Glass stops or another renderer runs.",
+    "Renderer telemetry now marks visualCorrectness=PARTIAL_UNSUPPORTED_LINES and reports suppressedLineObjects when this fallback is active.",
+    "A Pulse Glass run with suppressed line primitives is capped at 55/100, so fast-but-visually-wrong renderers cannot rank as EPIC/LEGENDARY.",
+    "The screenshot-reported radial fan is recorded as a renderer visual-correctness failure, not a performance win."
   ],
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "40ac63b62007980e7dd817abda9bf8b86993194a70c3b244387e80cca17b5535",
-      "bytes": 1883,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.4/update/colony-loader.js"
+      "sha256": "e3056f62933fd319a5b5c5778fb57e43a603ebdddc924facdb1618e292193b11",
+      "bytes": 2098,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.5/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "3724e65f0beda1f9a32bfd2a22bd3db6be928bc166a193cb7cfe64c347e94468",
-      "bytes": 1319,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.4/colony-runtime-manifest.json"
+      "sha256": "5b9b6492475d92c27b78fcda1080618d0b6b3637a98819e58242be64baa069bb",
+      "bytes": 1298,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.5/colony-runtime-manifest.json"
     }
   ],
   "delete": []
