@@ -1,28 +1,29 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "31.1.0",
-  "published_at": "2026-09-05T05:58:00Z",
+  "version": "32.0.0",
+  "published_at": "2026-09-05T06:12:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "Added the MOOR Renderer Tournament specification surface inside COLONY.",
-    "Locked a backend-neutral moor.render/1 contract so MOOR apps can depend on one stable rendering service while implementations remain replaceable.",
-    "Current Three.js WebGL becomes the compatibility Champion until a challenger passes hard correctness, replay, benchmark, soak, fallback and rollback gates.",
-    "Defined eight renderer candidate families (R0-R7), 17 deterministic benchmark scene classes (B00-B16), mandatory telemetry, Pareto comparison and meaningful-win promotion rules.",
-    "Type renderer tournament, render spec, renderer lab, or build renderer. The last command seeds the Generator Generator with the full renderer challenger constraints."
+    "Added Renderer Pulls as a first-class COLONY app: press RANDOM to generate a new renderer challenger.",
+    "Runnable Three/WebGL-derived pulls automatically connect to City Island and earn a live 0-100 performance score from real frame/render metrics; unimplemented architectures remain explicitly UNTESTED.",
+    "Live rarity bands: COMMON, RARE, EPIC, EXOTIC and LEGENDARY (95-100).",
+    "SAVE THIS PULL keeps only the current renderer you choose; saved renderers are searchable, reorderable, deletable and retain their latest measured score/metrics.",
+    "RUN asks which MOOR app/runtime to target. If the renderer is not compatible, COLONY generates the correct moor.render/1 builder prompt and copies it for GPT instead of faking a run.",
+    "Commands: renderer pulls, renderer gacha, renderer app, random renderer."
   ],
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "7d1a1eedc27827166dfc0220c22559a01bd5e550c5b1f77e84e6bb0bf370f33a",
-      "bytes": 1073,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/31.1.0/update/colony-loader.js"
+      "sha256": "ef021d769385a377596bb92d14f3806a5d0a6b612ca057d4c7626d05c65a3854",
+      "bytes": 1264,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.0.0/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "42cd9532244928bbbe9632bacb843deb6b76b4e73d2e97f74c5b37f6ab945639",
-      "bytes": 981,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/31.1.0/colony-runtime-manifest.json"
+      "sha256": "eaee2de4a7d67dfc74e09329ab8fa1a38d0357226eb11f70f345174b5c9397a9",
+      "bytes": 925,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.0.0/colony-runtime-manifest.json"
     }
   ],
   "delete": []
