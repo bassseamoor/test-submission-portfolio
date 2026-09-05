@@ -1,26 +1,28 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "29.0.1",
-  "published_at": "2026-09-05T04:45:00Z",
+  "version": "30.0.0",
+  "published_at": "2026-09-05T04:58:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "Activated the permanent COLONY/MOOR self-update channel.",
-    "Verified delta updates now install from inside COLONY without manual ZIP downloads.",
-    "Added an on-disk marker proving the first self-update completed."
+    "COLONY now opens as a blank one-color command surface with one outlined search/command bar.",
+    "Apps and information are summoned into one standardized tab/window model with minimize, maximize, close, list, grid, graph, document and runtime views.",
+    "Added a visible App Builder: choose a source and display mode, watch the preview assemble, then save the app for instant recall by name.",
+    "MOOR City opens as an embedded runtime surface; Continuity, Renderer, ChatGPT and Updates remain summonable by typing their names.",
+    "Wallpaper and saved app state persist locally; private COLONY project data is not published in this update."
   ],
   "files": [
     {
-      "path": "UPDATE-CHANNEL-ACTIVE.txt",
-      "sha256": "cff808e9c8758eacbc2e335ded0f2e6a6d1ad52d098a69b7724965f39cbd55db",
-      "bytes": 124,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/29.0.1/UPDATE-CHANNEL-ACTIVE.txt"
+      "path": "update/colony-updater.js",
+      "sha256": "d4686fe034d40b5a6a45b07da5ffa31714e1b89073d750fbba04498ad024cafd",
+      "bytes": 20115,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.0.0/update/colony-updater.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "3b4976107b964930210688123769712255686026644c48bfb76195b3d183d552",
-      "bytes": 700,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/29.0.1/colony-runtime-manifest.json"
+      "sha256": "9fdf9a3efac240e08f2918051b742a65c7fc68fb9ecb48ac9c1ed9035989d53e",
+      "bytes": 737,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.0.0/colony-runtime-manifest.json"
     }
   ],
   "delete": []
