@@ -1,31 +1,27 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "32.1.2",
-  "published_at": "2026-09-05T06:59:00Z",
+  "version": "32.1.3",
+  "published_at": "2026-09-05T07:08:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "Pulse Glass 141 (rp-mtnzjxi3-kkbrk) is registered as an experimental moor.render/1 Lean Custom WebGL2 challenger for moor.city.island.",
-    "The challenger renders on a separate WebGL2 canvas while the Legacy Three renderer object remains alive for current gameplay/input plumbing and instant rollback.",
-    "Renderer Pulls RUN now measures Pulse Glass only on the actual City Island runtime; no performance score is prefilled or claimed by this release.",
-    "Telemetry includes frame p95/p99, renderer CPU p95, draw calls, triangles, resource/upload bytes, errors, scene coverage, unsupported-object count, and the mandatory moor.render telemetry fields where measurable; unavailable GPU timing is explicitly UNAVAILABLE.",
-    "RenderReplay delegates to the City replay service when present and reports unsupported when that service is absent.",
-    "Pulse Glass v0.1.2 does not yet fully implement textures, shadows, Sprite/LOD, BatchedMesh, transparent or multi-material fidelity, or fog; coverage penalties cap its live score rather than hiding missing presentation features.",
-    "Running any different renderer pull first stops Pulse Glass and restores the Legacy Three draw path before the next candidate starts.",
-    "32.1.2 supersedes transient 32.1.0 and 32.1.1 and publishes byte-verified immutable Pulse Glass modules."
+    "Fixed Pulse Glass RUN timing: Renderer Pulls now waits up to 15 seconds for City Island to expose renderer, scene, camera and canvas before starting the adapter.",
+    "The previous blocking browser alert is replaced by in-app WAITING / STARTING / ACTIVE status text and a bounded error modal only if City never becomes render-ready.",
+    "Pulse Glass 141 remains experimental and unbenchmarked; no performance score is prefilled.",
+    "Running another renderer still restores Legacy Three before the next candidate starts."
   ],
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "c084e35bf62ada8e7beb528f8892f820e0f233d9c83575dab3c0decc990fdebd",
-      "bytes": 1688,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.2/update/colony-loader.js"
+      "sha256": "8c060078dd0962d07abd8fb438a4ea649b0d3ebd0d413c6dadf3742275de4350",
+      "bytes": 1683,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.3/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "5e633068d51cac2b3c6fcd72971d6a026daf34dd41c9b1cbbe339e37b0cae350",
-      "bytes": 1203,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.2/colony-runtime-manifest.json"
+      "sha256": "011cd75b98cc6231edd7dc948e53fd8b5a6b827dbdeb0d52918bad1b68691993",
+      "bytes": 1250,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.3/colony-runtime-manifest.json"
     }
   ],
   "delete": []
