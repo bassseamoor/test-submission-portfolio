@@ -1,0 +1,29 @@
+{
+  "product": "COLONY + MOOR Continuity Runtime",
+  "colony_version": "32.1.5",
+  "moor_city_version": "5.1.4-b63+continuity-v1",
+  "entry": "/COLONY.html",
+  "moor_entry": "/moor-city/index.html",
+  "preferred_port": 39501,
+  "runtime_bridge": "COLONYRuntimeBridge/1.1.0",
+  "continuity_bridge": "COLONYContinuity/1.0.0",
+  "request_capture": "COLONYRequestCapture/1.0.0",
+  "request_shortcut": "Backslash",
+  "generator_generator": "COLONYMGG/0.1.0",
+  "renderer_tournament": "COLONYRendererTournament/0.1.0",
+  "renderer_pulls": "COLONYRendererPulls/0.1.0 + PulseBridge/0.1.3",
+  "renderer_contract": "moor.render/1",
+  "pulse_glass_141": "PulseGlass141/0.1.2 + VisualGuard/0.1.0",
+  "pulse_glass_candidate_id": "rp-mtnzjxi3-kkbrk",
+  "pulse_glass_adapter_id": "pulse-glass-141.webgl2",
+  "pulse_glass_compatible_apps": [
+    "moor.city.island"
+  ],
+  "pulse_glass_status": "EXPERIMENTAL_VISUAL_PARTIAL_UNBENCHMARKED",
+  "pulse_glass_score_cap_when_lines_suppressed": 55,
+  "updater": "COLONYUpdater/1.1.0",
+  "update_channel": "stable",
+  "update_manifest": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/manifest.json",
+  "continuity_data": "%LOCALAPPDATA%\\COLONY-MOOR-DATA\\continuity",
+  "update_data": "%LOCALAPPDATA%\\COLONY-MOOR-DATA\\updates"
+}
