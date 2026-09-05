@@ -1,29 +1,29 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "32.0.0",
-  "published_at": "2026-09-05T06:12:00Z",
+  "version": "32.1.0",
+  "published_at": "2026-09-05T06:38:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
-    "Added Renderer Pulls as a first-class COLONY app: press RANDOM to generate a new renderer challenger.",
-    "Runnable Three/WebGL-derived pulls automatically connect to City Island and earn a live 0-100 performance score from real frame/render metrics; unimplemented architectures remain explicitly UNTESTED.",
-    "Live rarity bands: COMMON, RARE, EPIC, EXOTIC and LEGENDARY (95-100).",
-    "SAVE THIS PULL keeps only the current renderer you choose; saved renderers are searchable, reorderable, deletable and retain their latest measured score/metrics.",
-    "RUN asks which MOOR app/runtime to target. If the renderer is not compatible, COLONY generates the correct moor.render/1 builder prompt and copies it for GPT instead of faking a run.",
-    "Commands: renderer pulls, renderer gacha, renderer app, random renderer."
+    "Implemented Pulse Glass 141 (rp-mtnzjxi3-kkbrk) as an experimental Lean Custom WebGL2 renderer challenger for moor.city.island.",
+    "Pulse Glass renders on its own WebGL2 canvas behind moor.render/1 while preserving the legacy City renderer object for gameplay/input compatibility and rollback.",
+    "Renderer Pulls v0.2 adds a renderer-adapter registry so saved spec-only pulls can become runnable without changing app/gameplay code.",
+    "Pulse Glass exposes mandatory renderer telemetry, coverage/error penalties, and conditional deterministic RenderReplay support when the replay service is present.",
+    "No performance score is claimed by this release; use Renderer Pulls RUN on City Island to collect the first real score on your hardware.",
+    "Unsupported visual features remain explicit in v0.1: textures, shadows, sprites/LOD, and BatchedMesh are not yet fully rendered and reduce coverage/score rather than being hidden."
   ],
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "ef021d769385a377596bb92d14f3806a5d0a6b612ca057d4c7626d05c65a3854",
-      "bytes": 1264,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.0.0/update/colony-loader.js"
+      "sha256": "25c67eeaa93d93fdc26ec7ab4010367ebabb1a43fe6891da9bc801efeb0173c4",
+      "bytes": 1473,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.0/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
-      "sha256": "eaee2de4a7d67dfc74e09329ab8fa1a38d0357226eb11f70f345174b5c9397a9",
-      "bytes": 925,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.0.0/colony-runtime-manifest.json"
+      "sha256": "4e84e74605df9084ce5d5d8ef839311be9050a044b426ef73d58f142bdafaef6",
+      "bytes": 1083,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.0/colony-runtime-manifest.json"
     }
   ],
   "delete": []
