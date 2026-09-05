@@ -2,7 +2,7 @@
   "schema": "colony.moor.update/1",
   "channel": "stable",
   "version": "30.0.0",
-  "published_at": "2026-09-05T04:58:00Z",
+  "published_at": "2026-09-05T05:04:00Z",
   "minimum_updater": "1.0.0",
   "release_notes": [
     "COLONY now opens as a blank one-color command surface with one outlined search/command bar.",
@@ -14,9 +14,9 @@
   "files": [
     {
       "path": "update/colony-updater.js",
-      "sha256": "d4686fe034d40b5a6a45b07da5ffa31714e1b89073d750fbba04498ad024cafd",
-      "bytes": 20115,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.0.0/update/colony-updater.js"
+      "sha256": "0303ea8d93b996f4512ed82f8a2f263313e36d7d9777ac4eed532e7a1874fd39",
+      "bytes": 390,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/30.0.0/update/colony-loader.js"
     },
     {
       "path": "colony-runtime-manifest.json",
