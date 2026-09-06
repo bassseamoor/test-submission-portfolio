@@ -1,28 +1,45 @@
 {
   "schema": "colony.moor.update/1",
   "channel": "stable",
-  "version": "32.1.5",
-  "published_at": "2026-09-05T07:23:00Z",
-  "minimum_updater": "1.0.0",
+  "version": "32.3.0",
+  "published_at": "2026-09-06T04:31:40Z",
+  "minimum_updater": "1.2.0",
   "release_notes": [
-    "Pulse Glass visual correctness fix: the unstable custom line primitive path is now suppressed instead of producing catastrophic radial geometry.",
-    "Suppressed line objects are restored automatically when Pulse Glass stops or another renderer runs.",
-    "Renderer telemetry now marks visualCorrectness=PARTIAL_UNSUPPORTED_LINES and reports suppressedLineObjects when this fallback is active.",
-    "A Pulse Glass run with suppressed line primitives is capped at 55/100, so fast-but-visually-wrong renderers cannot rank as EPIC/LEGENDARY.",
-    "The screenshot-reported radial fan is recorded as a renderer visual-correctness failure, not a performance win."
+    "MOOR City 5.2.4 adds Movement Speed as the third silver-terminal upgrade.",
+    "Movement Speed increases ground movement by 10% per level from 100% to 160%.",
+    "Movement Speed uses the same equal-value cash, iron, copper, or crystal terminal economy.",
+    "The upgrade terminal HUD and physical terminal screens now expose Movement Speed with the purple boots icon."
   ],
   "files": [
     {
-      "path": "update/colony-updater.js",
-      "sha256": "e3056f62933fd319a5b5c5778fb57e43a603ebdddc924facdb1618e292193b11",
-      "bytes": 2098,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.5/update/colony-loader.js"
+      "path": "colony-runtime-manifest.json",
+      "sha256": "72d51f7fc0421727befed360a5b3de11b1352d6856410dfbb10a83c59debf38e",
+      "bytes": 1727,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.3.0/colony-runtime-manifest.json"
     },
     {
-      "path": "colony-runtime-manifest.json",
-      "sha256": "5b9b6492475d92c27b78fcda1080618d0b6b3637a98819e58242be64baa069bb",
-      "bytes": 1298,
-      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.1.5/colony-runtime-manifest.json"
+      "path": "moor-city/sky-islands/rules.mjs",
+      "sha256": "74665934c575c8ba3518b787e0f4f2cc26a626c5c4284e7b88821801741e21d8",
+      "bytes": 3970,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.3.0/moor-city/sky-islands/rules.mjs"
+    },
+    {
+      "path": "moor-city/sky-islands/upgrades.mjs",
+      "sha256": "47a68cdbe118f6480e7301db208be8ba93855fb7e0ce05676d572bf3d1f61d00",
+      "bytes": 5424,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.3.0/moor-city/sky-islands/upgrades.mjs"
+    },
+    {
+      "path": "moor-city/sky-islands/movement-speed-runtime.mjs",
+      "sha256": "6e48ae78cd8aa8f61b10611a3bdb1f8501629da0c2639410eacc43f1d3fb35e6",
+      "bytes": 9757,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.3.0/moor-city/sky-islands/movement-speed-runtime.mjs"
+    },
+    {
+      "path": "moor-city/sky-islands/movement-speed-upgrade.png",
+      "sha256": "0602c5e2fb80e9637e9463b2684654522d0a2061a7d60ebe7b8266fb41d67f63",
+      "bytes": 5492,
+      "url": "https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/releases/32.3.0/moor-city/sky-islands/movement-speed-upgrade.png"
     }
   ],
   "delete": []
