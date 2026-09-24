@@ -45,9 +45,11 @@ body[data-view="projects"] #view-projects{display:block}
 body[data-view="workspaces"] #view-workspaces{display:block}
 body[data-view="apps"] #view-apps{display:block}
 body[data-view="settings"] #view-settings{display:block}
-/* shell command bar (#cb) is served-only legacy UI that duplicates the global search bar:
-   it stays in the DOM (recent-rows + production search wire to #cb .cbin) but never renders */
-#cb{display:none!important}
+/* Served-only shell bar (#cb): the local colony-shell.js injects its own <style>
+   AFTER our stylesheet loads, so only !important can suppress it. #cb stays in
+   the DOM (recent-rows + production search wire to #cb .cbin) but never renders.
+   visibility:hidden is belt-and-suspenders: display:none already removes it. */
+#cb{display:none!important;visibility:hidden!important}
 /* home */
 #view-home{max-width:720px;padding-top:0} /* global bar now anchors the top; was 64px with the in-view home-search */
 .recent-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:8px;backdrop-filter:blur(14px);box-shadow:0 24px 60px rgba(0,0,0,.45)}
@@ -196,9 +198,9 @@ input[type=range]{accent-color:var(--accent);width:150px}
 .qa button{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:12px;cursor:pointer;text-align:left}
 .qa button:hover{border-color:var(--border2)}
 /* new button + toast */
-#newBtn{position:fixed;right:22px;bottom:20px;z-index:60;background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:99px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(12px)}
+#newBtn{position:fixed;right:22px;bottom:20px;z-index:5000;background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:99px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(12px)}
 #newBtn:hover{border-color:var(--accent)}
-#newMenu{position:fixed;right:22px;bottom:64px;z-index:60;background:var(--panel2);border:1px solid var(--border2);border-radius:12px;padding:6px;min-width:180px;backdrop-filter:blur(14px)}
+#newMenu{position:fixed;right:22px;bottom:64px;z-index:5000;background:var(--panel2);border:1px solid var(--border2);border-radius:12px;padding:6px;min-width:180px;backdrop-filter:blur(14px)}
 #newMenu button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--text);border-radius:8px;padding:9px 12px;font-size:12px;cursor:pointer}
 #newMenu button:hover{background:rgba(255,255,255,.06)}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:9000;background:#141a15;color:#eef3ed;border:1px solid var(--border2);border-radius:10px;padding:10px 16px;font-size:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
@@ -283,25 +285,30 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,1
 .ccp-right{margin-left:auto;color:var(--faint);font-size:11px;flex-shrink:0}
 .ccp-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--faint);flex-wrap:wrap}
 /* home search bar — the single anchored dropdown lives under this */
-/* ---- global search bar: pixel-faithful to the user's original stray bar ----
-   Design tokens distilled from the user's own design (their screenshot):
-   - surface: flat near-black rgba(11,14,13,.96) (flatter than glass panels)
-   - text: 14px regular, muted gray #8f9793
-   - radius: 14px (var(--radius)), height 54px, max-width 720px centered
-   - green accent dot: var(--accent) #c5eaa5, 28px circle at the bar's right end
-   Persistent across every view: single element above the view sections. */
-.global-search{display:flex;align-items:center;width:100%;max-width:720px;margin:2px auto 20px;padding:0 14px 0 20px;height:54px;background:rgba(11,14,13,.96);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);color:#8f9793;cursor:pointer;font-size:14px;font-family:inherit;text-align:left;box-shadow:0 18px 44px rgba(0,0,0,.5)}
-.global-search:hover{border-color:var(--border2)}
-.global-search:hover .gs-ph{color:var(--muted)}
-.gs-ph{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gs-dot{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px rgba(197,234,165,.35)}
+/* ---- global search bar: EXACT reproduction of the served shell bar (.cbbar/.cbin/.cbdot)
+   that the user designed (provenance: local update/colony-shell.js, GPT transcription):
+   - .cbbar: width min(680px, calc(100vw - 32px)) -> in normal flow: min(680px, 100%-32px), centered
+   - .cbin: height 50px, transparent background, white border, 15px radius,
+     placeholder "Search, open, build…" (U+2026), autocomplete off, spellcheck false
+   - .cbdot: green status circle at the bar's right end, title "Update ready",
+     click opens the updater
+   Class names are intentionally NOT .cbbar/.cbin/.cbdot: the shell's own injected
+   CSS would restyle them (fixed positioning). Ours live in normal flow at the top
+   of each view's content area. Single element above the view sections = every view. */
+.gbar{position:relative;width:min(680px,calc(100% - 32px));margin:14px auto 20px;height:50px}
+.gin{display:block;width:100%;height:50px;background:transparent;border:1px solid #fff;border-radius:15px;color:var(--text);font-size:15px;font-family:inherit;padding:0 54px 0 20px;outline:none;cursor:text}
+.gin::placeholder{color:#8f9793;opacity:1}
+.gin:focus{box-shadow:0 0 0 3px rgba(255,255,255,.1)}
+.gdot{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:#7fd67f;border:0;padding:0;cursor:pointer;box-shadow:0 0 12px rgba(127,214,127,.55)}
+.gdot:hover{filter:brightness(1.12)}
 #view-home .recent-card{max-width:720px;margin:12px auto 0}
 /* top bar: never clip, compact gracefully */
 .top-right{min-width:0}
 .top-right .tbtn{white-space:nowrap;flex-shrink:0}
 .top-right .avatar{flex-shrink:0}
-/* production launcher fallback placement (matches live bottom-left pill; shell styles win when loaded) */
-.cp-launch{position:fixed;left:22px;bottom:20px;z-index:60;display:flex;align-items:center;gap:8px}
+/* production launcher: pinned bottom-left; z-index above every served-only layer
+   (the shell's #cb overlay sits at z-index 100) so the pills are never covered */
+.cp-launch{position:fixed;left:22px;bottom:20px;z-index:5000;display:flex;align-items:center;gap:8px}
 .cp-launch button{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;white-space:nowrap}
 .cp-launch button.cp-primary{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
 .cp-launch #colonyProductionStatus{font-size:10px;color:var(--faint)}
@@ -323,7 +330,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 #newBtn{bottom:84px}
 #newMenu{bottom:128px;right:12px}
 .cp-launch{left:12px;bottom:84px}
-.global-search{height:48px;font-size:14px;margin-bottom:14px}
+.gbar{margin-bottom:14px}.gin{height:48px;font-size:14px}
 .ccp-backdrop{padding:6vh 12px 12px}
 .brand b{font-size:13px;letter-spacing:.16em}
 }
@@ -358,7 +365,10 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
   <button data-go="settings" title="Settings">⚙</button>
 </nav>
 <main>
-  <button class="global-search" id="globalSearch" aria-label="Search Colony"><span class="gs-ph">Search, open, build…</span><span class="gs-dot" aria-hidden="true"></span></button>
+  <div class="gbar" id="gbar" role="search">
+    <input class="gin" id="gin" placeholder="Search, open, build…" autocomplete="off" spellcheck="false" aria-label="Search Colony">
+    <button class="gdot" id="gdot" title="Update ready" aria-label="Update status"></button>
+  </div>
   <section class="view" id="view-home" aria-label="Home">
     <div class="recent-card" id="recentCard">
       <div class="recent-title">Recent</div>
@@ -1571,15 +1581,35 @@ var toastT=null;
 function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},2600)}
 /* ---------- view switching ---------- */
 function go(v){document.body.dataset.view=v;$$('.rail button').forEach(function(b){b.classList.toggle('on',b.dataset.go===v)});window.scrollTo(0,0);var m=$('main');if(m)m.scrollTop=0}
-$$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.go)})}); /* global search opens the command palette */ var hs=$('#globalSearch');if(hs){hs.addEventListener('click',function(){try{window.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true,cancelable:true}))}catch(e){}});}
+$$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.go)})});
+/* visible search bar (exact shell-bar design): click/Enter opens the command palette;
+   typing mirrors into the hidden shell input so legacy wiring (production search,
+   shell suggest) keeps working; the dot opens the updater like the shell's .cbdot.
+   (Focus does NOT open the palette: the palette returns focus to this input on
+   close, which would reopen it in a loop.) */
+(function(){
+  function openPalette(){try{window.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true,cancelable:true}))}catch(e){}}
+  var gin=$('#gin');
+  if(gin){
+    gin.addEventListener('click',openPalette);
+    gin.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();openPalette();gin.blur()}});
+    gin.addEventListener('input',function(){
+      var cb=document.querySelector('#cb .cbin');
+      if(cb&&cb.value!==gin.value){cb.value=gin.value;try{cb.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
+    });
+  }
+  var gdot=$('#gdot');
+  if(gdot)gdot.addEventListener('click',function(e){e.stopPropagation();if(window.COLONYUpdater&&window.COLONYUpdater.open)window.COLONYUpdater.open();else toast('Updates are checked automatically every 90 seconds.')});
+})();
 /* ---------- clock ---------- */
 function tick(){var d=new Date();var ds=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});var ts=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});var c=$('#clock');if(c)c.textContent=ds+' · '+ts}
 tick();setInterval(tick,20000);
-/* ---------- recent searches -> shell input ---------- */
+/* ---------- recent searches -> visible bar + hidden shell input (legacy) ---------- */
 $$('.recent-row').forEach(function(b){b.addEventListener('click',function(){
+  var gin=$('#gin');if(gin)gin.value=b.dataset.q;
   var inp=document.querySelector('#cb .cbin');
-  if(inp){inp.value=b.dataset.q;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.focus()}
-  else toast('Search is still loading…');
+  if(inp){inp.value=b.dataset.q;try{inp.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
+  else if(!gin)toast('Search is still loading…');
 })});
 /* ---------- continuity ---------- */
 var cbtn=$('#continuityBtn');
@@ -1869,7 +1899,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__COLONY_LIVE_VER='20260924-004';
+window.__COLONY_LIVE_VER='20260924-005';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
