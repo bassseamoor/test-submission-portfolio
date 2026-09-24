@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>COLONY</title></head><body>
+<html><head><meta charset="utf-8"><title>moor</title></head><body>
 <script>
 (function(){
   var KEY='colony-live';
-  var FEED='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/live/';
+  var FEED='https://raw.githubusercontent.com/bassseamoor/colony-moor/main/live/';
   function read(){try{var s=localStorage.getItem(KEY);return s?JSON.parse(s):null}catch(e){return null}}
   function write(v,h){try{localStorage.setItem(KEY,JSON.stringify({ver:v,html:h}))}catch(e){}}
   function render(h){document.open();document.write(h);document.close()}
