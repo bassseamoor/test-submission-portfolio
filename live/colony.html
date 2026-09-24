@@ -1441,6 +1441,33 @@ window.addEventListener('keydown', e => {
 if (document.body) mount();
 else document.addEventListener('DOMContentLoaded', mount, { once: true });
 
+/* ---------- external API for the global search bar (#gin): additive only ----------
+ * Lets the visible bar drive the palette without a second suggestion UI:
+ * openWithQuery opens (if closed), live-filters by the typed text, and leaves
+ * focus wherever the caller wants it. activateTop runs the selected row
+ * (defaults to the top hit). moveSelection steps the highlight for arrows. */
+window.__colonyPalette = {
+  isOpen: function(){ return open; },
+  openWithQuery: function(q){
+    if(!open) openPalette();
+    query = String(q == null ? '' : q); sel = 0;
+    if(input) input.value = query;
+    render();
+  },
+  activateTop: function(){
+    var flat = flatRows(buildGroups());
+    var s = flat[sel] || flat[0];
+    if(s) choose(s);
+  },
+  moveSelection: function(d){
+    var flat = flatRows(buildGroups());
+    if(!flat.length) return;
+    sel = (sel + d + flat.length) % flat.length;
+    paintActive();
+  },
+  close: close
+};
+
 })();
 
 </script>
@@ -1582,20 +1609,42 @@ function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTime
 /* ---------- view switching ---------- */
 function go(v){document.body.dataset.view=v;$$('.rail button').forEach(function(b){b.classList.toggle('on',b.dataset.go===v)});window.scrollTo(0,0);var m=$('main');if(m)m.scrollTop=0}
 $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.go)})});
-/* visible search bar (exact shell-bar design): click/Enter opens the command palette;
-   typing mirrors into the hidden shell input so legacy wiring (production search,
-   shell suggest) keeps working; the dot opens the updater like the shell's .cbdot.
+/* visible search bar (exact shell-bar design): it DRIVES the command palette —
+   typing opens the palette (if closed) and live-filters it; Enter runs the top
+   hit; Esc closes and clears; arrows move the highlight. Typing also mirrors
+   into the hidden shell input so legacy wiring (production search, shell
+   suggest) keeps working; the dot opens the updater like the shell's .cbdot.
    (Focus does NOT open the palette: the palette returns focus to this input on
-   close, which would reopen it in a loop.) */
+   close, which would reopen it in a loop. Escape is handled on keyup because
+   the palette's capture-phase listener swallows the keydown.) */
 (function(){
+  function pal(){return window.__colonyPalette||null}
   function openPalette(){try{window.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true,cancelable:true}))}catch(e){}}
+  function mirrorLegacy(v){
+    var cb=document.querySelector('#cb .cbin');
+    if(cb&&cb.value!==v){cb.value=v;try{cb.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
+  }
+  function drive(q){
+    var p=pal(),gin=$('#gin');
+    if(p){p.openWithQuery(q);if(gin&&document.activeElement!==gin)gin.focus()}
+    else openPalette();
+  }
   var gin=$('#gin');
   if(gin){
-    gin.addEventListener('click',openPalette);
-    gin.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();openPalette();gin.blur()}});
-    gin.addEventListener('input',function(){
-      var cb=document.querySelector('#cb .cbin');
-      if(cb&&cb.value!==gin.value){cb.value=gin.value;try{cb.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
+    gin.addEventListener('click',function(){drive(gin.value)});
+    gin.addEventListener('input',function(){mirrorLegacy(gin.value);drive(gin.value)});
+    gin.addEventListener('keydown',function(e){
+      var p=pal();
+      if(e.key==='Enter'){
+        e.preventDefault();
+        if(p&&p.isOpen()){p.activateTop();gin.value='';mirrorLegacy('')}
+        else drive(gin.value);
+      }else if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+        if(p&&p.isOpen()){e.preventDefault();p.moveSelection(e.key==='ArrowDown'?1:-1)}
+      }
+    });
+    gin.addEventListener('keyup',function(e){
+      if(e.key==='Escape'){var p=pal();if(p&&p.isOpen())p.close();gin.value='';mirrorLegacy('');gin.blur()}
     });
   }
   var gdot=$('#gdot');
@@ -1899,7 +1948,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__COLONY_LIVE_VER='20260924-005';
+window.__COLONY_LIVE_VER='20260924-006';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
