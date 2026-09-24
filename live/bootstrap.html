@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>COLONY</title></head><body>
+<script>
+(function(){
+  var KEY='colony-live';
+  var FEED='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/live/';
+  function read(){try{var s=localStorage.getItem(KEY);return s?JSON.parse(s):null}catch(e){return null}}
+  function write(v,h){try{localStorage.setItem(KEY,JSON.stringify({ver:v,html:h}))}catch(e){}}
+  function render(h){document.open();document.write(h);document.close()}
+  function fail(){document.open();document.write('Could not reach the Colony update feed \u2014 check your connection and reload.');document.close()}
+  var cached=read();
+  if(cached&&cached.html){render(cached.html)}
+  fetch(FEED+'version.txt?cb='+Date.now(),{cache:'no-store'}).then(function(r){
+    if(!r.ok)throw new Error('ver');return r.text();
+  }).then(function(t){
+    var v=(t||'').trim();if(!v)throw new Error('ver');
+    if(cached&&v===cached.ver)return null;
+    return fetch(FEED+'colony.html?cb='+Date.now(),{cache:'no-store'}).then(function(r){
+      if(!r.ok)throw new Error('html');return r.text();
+    }).then(function(html){return {v:v,html:html}});
+  }).then(function(got){
+    if(!got)return;
+    write(got.v,got.html);
+    if(cached&&cached.html){location.reload()}else{render(got.html)}
+  }).catch(function(){
+    if(!cached||!cached.html)fail();
+  });
+})();
+</script>
+</body></html>
