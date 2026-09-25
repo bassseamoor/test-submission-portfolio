@@ -2830,7 +2830,8 @@ var AI_PROVIDERS=[
  {id:'openrouter',name:'OpenRouter',blurb:'Free models · many providers, one key',test:'https://openrouter.ai/api/v1/auth/key'},
  {id:'github',name:'GitHub Models',blurb:'Free with a GitHub account · use a fine-grained PAT',test:null},
  {id:'mistral',name:'Mistral',blurb:'Free tier · La Plateforme',test:'https://api.mistral.ai/v1/models'},
- {id:'nvidia',name:'NVIDIA NIM',blurb:'Free credits · build.nvidia.com',test:'https://integrate.api.nvidia.com/v1/models'}
+ {id:'nvidia',name:'NVIDIA NIM',blurb:'Free credits · build.nvidia.com',test:'https://integrate.api.nvidia.com/v1/models'},
+ {id:'jev',name:'Jev',blurb:'TypeSafe · System One decisions, no text',test:'https://api.typesafe.ai/v1/systemone',testPost:true,judge:false}
 ];
 var AI={ollama:'http://127.0.0.1:11434',keys:{},judge:'groq',verifier:'qwen3:8b'};
 function aiLoad(){try{var s=JSON.parse(localStorage.getItem(AI_KEY)||'null');if(s&&typeof s==='object')AI=Object.assign(AI,s)}catch(e){}}
@@ -2853,13 +2854,30 @@ function aiTestProvider(p,msgEl){
   if(!key){msgEl.textContent='Save a key first.';return}
   if(!p.test){msgEl.textContent='Saved. This one has no quick check — the key will be used when you call it.';return}
   msgEl.textContent='Checking…';
+  function done(ok,txt){msgEl.classList.add(ok?'ok':'bad');msgEl.textContent=txt}
+  function fail(){msgEl.textContent='Could not verify from this browser (network/CORS). Key is saved anyway.'}
+  if(p.testPost){ /* Jev: POST-only API; a tiny Noul question validates the key */
+    fetch(p.test,{method:'POST',signal:AbortSignal.timeout(15000),
+      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+      body:JSON.stringify({model:'jev-latest',state:{ping:'connectivity check from moor'},
+        questions:{reachable:{type:'noul',instructions:'This is a connectivity test. The correct answer is yes.'}}})
+    }).then(function(r){
+      return r.json().catch(function(){return null}).then(function(d){
+        if(r.status===401||r.status===403)done(false,'Key was rejected (HTTP '+r.status+').');
+        else if(r.ok&&d&&(d.model||d.answers))done(true,'Connected · answered as '+(d.model||'jev')+'.');
+        else if(r.ok)done(true,'Connected · key works.');
+        else done(false,'Check returned HTTP '+r.status+' — key is saved, confirm the shape in the TypeSafe console.');
+      });
+    }).catch(fail);
+    return;
+  }
   var url=p.keyInUrl?p.test+encodeURIComponent(key):p.test;
   var opts={signal:AbortSignal.timeout(10000)};
   if(!p.keyInUrl){opts.headers={'Authorization':'Bearer '+key};if(p.id==='openrouter')opts.headers['X-Title']='moor'}
   fetch(url,opts).then(function(r){
-    if(r.ok){msgEl.classList.add('ok');msgEl.textContent='Connected · key works.'}
-    else{msgEl.classList.add('bad');msgEl.textContent='Key was rejected (HTTP '+r.status+').'}
-  }).catch(function(){msgEl.textContent='Could not verify from this browser (network/CORS). Key is saved anyway.'});
+    if(r.ok)done(true,'Connected · key works.');
+    else done(false,'Key was rejected (HTTP '+r.status+').');
+  }).catch(fail);
 }
 function drawAISettings(){
   var h='<h3>AI &amp; Agents</h3><p class="sub">Connect models and API keys. Nothing is assumed — you connect what you use.</p>';
@@ -2878,7 +2896,7 @@ function drawAISettings(){
   h+='<h4 style="margin:18px 0 4px;font-size:12px;letter-spacing:.08em;color:var(--muted)">ROUTING</h4>'+
      '<div class="ai-prov"><div class="ai-rules">Judgment + online &rarr; cloud &nbsp;·&nbsp; Private / offline / instant &rarr; local &nbsp;·&nbsp; Verifier scoring &rarr; always local</div>'+
      '<div class="set-row"><span>Judgment provider<small>Used when online and the call matters</small></span><span><select id="aiJudge">'+
-     AI_PROVIDERS.map(function(p){return '<option value="'+p.id+'"'+(AI.judge===p.id?' selected':'')+'>'+esc(p.name)+'</option>'}).join('')+'</select></span></div>'+
+     AI_PROVIDERS.filter(function(p){return p.judge!==false}).map(function(p){return '<option value="'+p.id+'"'+(AI.judge===p.id?' selected':'')+'>'+esc(p.name)+'</option>'}).join('')+'</select></span></div>'+
      '<div class="set-row"><span>Verifier model<small>Local model that scores the work</small></span><span><input id="aiVerifier" value="'+esc(AI.verifier)+'" spellcheck="false" autocomplete="off" style="max-width:170px"></span></div></div>';
   h+='<p style="font-size:11px;color:var(--muted);max-width:460px">Keys stay in this browser\u2019s local storage and are only ever sent to the provider you chose. Agent worker loops aren\u2019t built yet.</p>';
   setMain.innerHTML=h;
@@ -3039,7 +3057,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-015';
+window.__MOOR_LIVE_VER='20260925-016';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
