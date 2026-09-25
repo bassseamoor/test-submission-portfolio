@@ -193,6 +193,48 @@ input:focus,select:focus{border-color:var(--accent)}
 /* stationary panel, scrolling list (apps view) */
 #view-apps .panel{position:sticky;top:26px;max-height:calc(100dvh - var(--top-h) - 60px);display:flex;flex-direction:column}
 #view-apps .app-grid{overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin}
+/* ---------- widgets catalog ---------- */
+body[data-view="widgets"] #view-widgets{display:block}
+#view-widgets .panel{position:sticky;top:26px;max-height:calc(100dvh - var(--top-h) - 60px);display:flex;flex-direction:column}
+.widget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px;padding:18px 20px 26px;overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin}
+.widget{background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(14px);box-shadow:var(--shadow-card);overflow:hidden;display:flex;flex-direction:column;min-height:216px}
+.wg-head{padding:13px 16px 0}
+.wg-head span{font-size:10.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted)}
+.wg-body{padding:6px 16px 16px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.wg-time{font-size:42px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1.05}
+.wg-date{font-size:12.5px;color:var(--muted)}
+.wg-meta{font-size:11.5px;color:var(--muted);line-height:1.5}
+.wg-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.wbtn{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:650;cursor:pointer}
+.wbtn:hover{filter:brightness(1.15)}
+.wbtn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.winput{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12.5px;color:var(--text);outline:none}
+.wg-notes{flex:1;min-height:110px;background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--text);outline:none;resize:none;font-family:inherit}
+.wg-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:11px}
+.wg-cal .dow{color:var(--faint);font-weight:700;font-size:9.5px;padding:4px 0}
+.wg-cal span{padding:5px 0;border-radius:7px}
+.wg-cal .today{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.wg-cal-head{display:flex;align-items:center;justify-content:space-between}
+.wg-cal-head b{font-size:13px}
+.wg-calc-d{text-align:right;font-size:30px;font-weight:650;font-variant-numeric:tabular-nums;padding:6px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wg-calc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.wg-calc .wbtn{padding:10px 0}
+.wg-list{display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:150px}
+.wg-item{display:flex;align-items:center;gap:10px;padding:7px 4px;font-size:12.5px;border-bottom:1px solid rgba(255,255,255,.05)}
+.wg-item.done span{text-decoration:line-through;color:var(--muted)}
+.wg-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wcheck{width:20px;height:20px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--accent);font-size:12px;cursor:pointer;flex:none;display:grid;place-items:center}
+.wx{background:transparent;border:0;color:var(--faint);font-size:15px;cursor:pointer;padding:2px 6px}
+.wg-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.wg-bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.wg-wrow{display:flex;align-items:center;gap:12px}
+.wg-wicon{font-size:34px}
+.wg-ringwrap{display:grid;place-items:center}
+.wg-ringwrap svg{width:118px;height:118px}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.09);stroke-width:9}
+.ring-fg{fill:none;stroke:var(--accent);stroke-width:9;stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .5s}
+.wg-ringwrap text{font-size:20px;font-weight:650;fill:var(--text);text-anchor:middle;font-variant-numeric:tabular-nums}
+.wg-laps{display:flex;flex-direction:column;gap:2px;max-height:84px;overflow-y:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .app{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:16px 8px 12px;text-align:center;cursor:pointer;color:var(--text)}
 .app:hover{border-color:var(--border2);background:rgba(255,255,255,.05)}
 .app .ai{font-size:26px;line-height:1;display:grid;place-items:center;width:52px;height:52px;margin:0 auto;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07)}
@@ -414,6 +456,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 <nav class="rail" aria-label="Views">
   <button data-go="home" class="on" title="Home">⌂</button>
   <button data-go="apps" title="Apps">▦</button>
+  <button data-go="widgets" title="Widgets">⊞</button>
   <button data-go="projects" title="Projects">▤</button>
   <button data-go="workspaces" title="Workspaces">⧉</button>
   <button data-go="settings" title="Settings">⚙</button>
@@ -527,6 +570,17 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
     <div class="watermark">A CLEAN CANVAS<br>GOES FURTHER.<br><span>— moor</span></div>
   </section>
 
+  <section class="view" id="view-widgets" aria-label="Widgets">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>⊞ Widgets</h2><p>Small tools for the canvas. Everything here works.</p></div>
+        <div class="sp"></div>
+        <button class="xbtn" data-go="home" title="Close">✕</button>
+      </div>
+      <div class="widget-grid" id="widgetGrid"></div>
+    </div>
+    <div class="watermark">A CLEAN CANVAS<br>GOES FURTHER.<br><span>— moor</span></div>
+  </section>
   <section class="view" id="view-settings" aria-label="Settings">
     <div class="panel">
       <div class="panel-head">
@@ -2559,6 +2613,196 @@ function setAppView(v){
 }
 $$('#view-apps .panel-head .iconbtn').forEach(function(b){b.addEventListener('click',function(){setAppView(b.dataset.aview||'grid')})});
 drawApps();
+/* ---------- widgets ---------- */
+function wgBeep(){try{var C=wgBeep.c||(wgBeep.c=new (window.AudioContext||window.webkitAudioContext)());var o=C.createOscillator(),g=C.createGain();o.connect(g);g.connect(C.destination);o.frequency.value=880;g.gain.setValueAtTime(.001,C.currentTime);g.gain.exponentialRampToValueAtTime(.3,C.currentTime+.02);g.gain.exponentialRampToValueAtTime(.001,C.currentTime+.6);o.start();o.stop(C.currentTime+.65)}catch(e){}}
+function wgClock(el){
+  el.innerHTML='<div class="wg-time" data-t>--:--</div><div class="wg-date" data-d></div>';
+  var t=el.querySelector('[data-t]'),d=el.querySelector('[data-d]');
+  function up(){var n=new Date(),p=function(x){return (x<10?'0':'')+x};
+    t.textContent=p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds());
+    d.textContent=n.toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric'})}
+  up();setInterval(up,1000);
+}
+var WCODE={0:['Clear','☀️'],1:['Mostly clear','🌤️'],2:['Partly cloudy','⛅'],3:['Overcast','☁️'],45:['Fog','🌫️'],48:['Fog','🌫️'],51:['Drizzle','🌧️'],53:['Drizzle','🌧️'],55:['Drizzle','🌧️'],61:['Rain','🌧️'],63:['Rain','🌧️'],65:['Heavy rain','🌧️'],71:['Snow','❄️'],73:['Snow','❄️'],75:['Snow','❄️'],80:['Showers','🌧️'],81:['Showers','🌧️'],82:['Showers','🌧️'],95:['Thunderstorm','⛈️']};
+function wgWeather(el){
+  el.innerHTML='<div class="wg-wrow"><span class="wg-wicon" data-i>…</span><span class="wg-time" data-t style="font-size:38px">--°</span></div><div class="wg-meta" data-m>Finding location…</div>';
+  var t=el.querySelector('[data-t]'),m=el.querySelector('[data-m]'),ic=el.querySelector('[data-i]');
+  var cached=null;try{cached=JSON.parse(localStorage.getItem('moor.weather.v1')||'null')}catch(e){}
+  function paint(w,stale){var c=WCODE[w.code]||['','—'];ic.textContent=c[1];t.textContent=Math.round(w.temp)+'°';
+    m.textContent=(w.city?w.city+' · ':'')+c[0]+(stale?' (cached)':'')}
+  function fail(msg){if(!cached){m.textContent=msg;ic.textContent='—'}}
+  if(cached)paint(cached,true);
+  if(!navigator.geolocation){fail('Location isn’t available in this browser.');return}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude.toFixed(3),lon=pos.coords.longitude.toFixed(3);
+    fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code&timezone=auto')
+    .then(function(r){return r.json()}).then(function(j){
+      var w={temp:j.current.temperature_2m,code:j.current.weather_code,t:Date.now()};
+      function done(){try{localStorage.setItem('moor.weather.v1',JSON.stringify(w))}catch(e){}paint(w,false)}
+      fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lon+'&localityLanguage=en')
+        .then(function(r){return r.json()}).then(function(g){w.city=g.city||g.locality||'';done()}).catch(done);
+    }).catch(function(){fail('Weather didn’t load. Check your connection.')});
+  },function(){fail('Location unavailable — allow location access for live weather.')},{timeout:9000});
+}
+function wgCalendar(el){
+  var cur=new Date();cur.setDate(1);
+  el.innerHTML='<div class="wg-cal-head" data-h></div><div class="wg-cal" data-g></div>';
+  var h=el.querySelector('[data-h]'),g=el.querySelector('[data-g]');
+  function draw(){
+    var y=cur.getFullYear(),mo=cur.getMonth(),today=new Date();
+    h.innerHTML='<button class="wbtn" data-c="-1">‹</button><b>'+cur.toLocaleString('en',{month:'long'})+' '+y+'</b><button class="wbtn" data-c="1">›</button>';
+    var start=(new Date(y,mo,1).getDay()+6)%7,days=new Date(y,mo+1,0).getDate(),html='';
+    ['M','T','W','T','F','S','S'].forEach(function(d){html+='<span class="dow">'+d+'</span>'});
+    for(var i=0;i<start;i++)html+='<span></span>';
+    for(var d=1;d<=days;d++){var isT=(d===today.getDate()&&mo===today.getMonth()&&y===today.getFullYear());
+      html+='<span class="'+(isT?'today':'')+'">'+d+'</span>'}
+    g.innerHTML=html;
+    h.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){cur.setMonth(cur.getMonth()+parseInt(b.dataset.c,10));draw()})});
+  }
+  draw();
+}
+function wgNotes(el){
+  el.innerHTML='<textarea class="wg-notes" placeholder="Type to remember…"></textarea><div class="wg-meta" data-m></div>';
+  var ta=el.querySelector('textarea'),m=el.querySelector('[data-m]');
+  try{ta.value=localStorage.getItem('moor.notes.v1')||''}catch(e){}
+  function upd(){var w=ta.value.trim().split(/\s+/).filter(Boolean).length;
+    m.textContent=ta.value?(w+' word'+(w===1?'':'s')+' · saved'):''}
+  var t;ta.addEventListener('input',function(){clearTimeout(t);
+    t=setTimeout(function(){try{localStorage.setItem('moor.notes.v1',ta.value)}catch(e){}},300);upd()});
+  upd();
+}
+function wgTimer(el){
+  var total=5*60,left=total,endAt=0,tick=null;
+  el.innerHTML='<div class="wg-time" data-d>05:00</div><div class="wg-row" data-c></div><div class="wg-row"><button class="wbtn primary" data-a>Start</button><button class="wbtn" data-r>Reset</button></div>';
+  var d=el.querySelector('[data-d]'),chips=el.querySelector('[data-c]'),a=el.querySelector('[data-a]');
+  function fmt(s){s=Math.max(0,Math.ceil(s));var h=Math.floor(s/3600),m2=Math.floor(s%3600/60),x=s%60;
+    return (h?h+':':'')+(m2<10?'0':'')+m2+':'+(x<10?'0':'')+x}
+  function show(){d.textContent=fmt(left)}
+  function stop(){if(tick){clearInterval(tick);tick=null}a.textContent='Start'}
+  [1,5,10,15,25,60].forEach(function(mn){var b=document.createElement('button');b.className='wbtn';b.textContent=mn;
+    b.addEventListener('click',function(){stop();total=mn*60;left=total;show()});chips.appendChild(b)});
+  a.addEventListener('click',function(){
+    if(tick){left=Math.max(0,(endAt-Date.now())/1000);stop();show();return}
+    endAt=Date.now()+left*1000;a.textContent='Pause';
+    tick=setInterval(function(){left=Math.max(0,(endAt-Date.now())/1000);show();
+      if(left<=0){stop();show();wgBeep();toast('Timer done.')}},250);
+  });
+  el.querySelector('[data-r]').addEventListener('click',function(){stop();left=total;show()});
+  show();
+}
+function wgStopwatch(el){
+  var acc=0,base=0,tick=null;
+  el.innerHTML='<div class="wg-time" data-d>00:00.0</div><div class="wg-row"><button class="wbtn primary" data-a>Start</button><button class="wbtn" data-l>Lap</button><button class="wbtn" data-r>Reset</button></div><div class="wg-laps" data-p></div>';
+  var d=el.querySelector('[data-d]'),a=el.querySelector('[data-a]'),laps=el.querySelector('[data-p]');
+  function fmt(ms){var t=Math.floor(ms/100),ds=t%10,s=Math.floor(t/10)%60,m2=Math.floor(t/600)%60,h=Math.floor(t/36000);
+    var p=function(x){return (x<10?'0':'')+x};return (h?h+':':'')+p(m2)+':'+p(s)+'.'+ds}
+  function now(){return acc+(tick?Date.now()-base:0)}
+  function show(){d.textContent=fmt(now())}
+  a.addEventListener('click',function(){
+    if(tick){acc=now();clearInterval(tick);tick=null;a.textContent='Start'}
+    else{base=Date.now();a.textContent='Pause';tick=setInterval(show,100)}
+    show();
+  });
+  el.querySelector('[data-l]').addEventListener('click',function(){
+    var row=document.createElement('div');row.textContent='Lap '+(laps.children.length+1)+' — '+fmt(now());
+    laps.insertBefore(row,laps.firstChild);while(laps.children.length>5)laps.removeChild(laps.lastChild);
+  });
+  el.querySelector('[data-r]').addEventListener('click',function(){
+    if(tick){clearInterval(tick);tick=null}a.textContent='Start';acc=0;laps.innerHTML='';show()});
+  show();
+}
+function wgCalc(el){
+  el.innerHTML='<div class="wg-calc-d" data-d>0</div><div class="wg-calc" data-g></div>';
+  var d=el.querySelector('[data-d]'),g=el.querySelector('[data-g]');
+  var cur='0',acc=null,op=null,fresh=true;
+  function show(){d.textContent=cur}
+  function calc(a,b,o){a=parseFloat(a);b=parseFloat(b);
+    if(o==='+')return a+b;if(o==='−')return a-b;if(o==='×')return a*b;if(o==='÷')return b===0?NaN:a/b;return b}
+  function press(k){
+    if(/[0-9]/.test(k)){if(fresh){cur=k;fresh=false}else if(cur.replace(/[-.]/g,'').length<12)cur=cur==='0'?k:cur+k}
+    else if(k==='.'){if(fresh){cur='0.';fresh=false}else if(cur.indexOf('.')<0)cur+=k}
+    else if(k==='C'){cur='0';acc=null;op=null;fresh=true}
+    else if(k==='⌫'){cur=fresh?'0':(cur.length>1?cur.slice(0,-1):'0');if(cur==='0')fresh=true}
+    else if(k==='='){if(op!==null&&acc!==null){var r=calc(acc,cur,op);cur=isFinite(r)?String(+r.toFixed(10)):'Error';acc=null;op=null;fresh=true}}
+    else{if(!fresh&&op!==null&&acc!==null){var r2=calc(acc,cur,op);cur=isFinite(r2)?String(+r2.toFixed(10)):'Error';acc=cur==='Error'?null:cur}else if(acc===null){acc=cur}
+      op=k;fresh=true}
+    show();
+  }
+  ['C','⌫','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='].forEach(function(k){
+    var b=document.createElement('button');b.className='wbtn'+(k==='='?' primary':'');b.textContent=k;
+    b.addEventListener('click',function(){press(k)});g.appendChild(b)});
+  show();
+}
+function wgFocus(el){
+  var modes=[['Focus',25],['Break',5]],mi=0,total=25*60,left=total,endAt=0,tick=null;
+  var CIRC=2*Math.PI*52;
+  el.innerHTML='<div class="wg-ringwrap"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="ring-bg"/><circle cx="60" cy="60" r="52" class="ring-fg" data-r/><text x="60" y="67" data-t>25:00</text></svg></div><div class="wg-row" data-m></div><div class="wg-row"><button class="wbtn primary" data-a>Start</button><button class="wbtn" data-s>Reset</button></div>';
+  var ring=el.querySelector('[data-r]'),t=el.querySelector('[data-t]'),a=el.querySelector('[data-a]'),mrow=el.querySelector('[data-m]');
+  ring.style.strokeDasharray=CIRC;ring.style.strokeDashoffset=0;
+  function fmt(s){s=Math.max(0,Math.ceil(s));return (s/60<10?'0':'')+Math.floor(s/60)+':'+((s%60<10?'0':'')+s%60)}
+  function show(){t.textContent=fmt(left);ring.style.strokeDashoffset=CIRC*(1-left/total)}
+  function stop(){if(tick){clearInterval(tick);tick=null}a.textContent='Start'}
+  modes.forEach(function(md,i){var b=document.createElement('button');b.className='wbtn'+(i===0?' primary':'');b.textContent=md[0];
+    b.addEventListener('click',function(){stop();mi=i;total=md[1]*60;left=total;
+      mrow.querySelectorAll('button').forEach(function(x){x.classList.remove('primary')});b.classList.add('primary');show()});
+    mrow.appendChild(b)});
+  a.addEventListener('click',function(){
+    if(tick){left=Math.max(0,(endAt-Date.now())/1000);stop();show();return}
+    endAt=Date.now()+left*1000;a.textContent='Pause';
+    tick=setInterval(function(){left=Math.max(0,(endAt-Date.now())/1000);show();
+      if(left<=0){stop();show();wgBeep();toast(modes[mi][0]+' finished.')}},250);
+  });
+  el.querySelector('[data-s]').addEventListener('click',function(){stop();left=total;show()});
+  show();
+}
+function wgReminders(el){
+  var KEY='moor.reminders.v1',items=[];
+  try{items=JSON.parse(localStorage.getItem(KEY)||'[]')||[]}catch(e){}
+  el.innerHTML='<div class="wg-row"><input class="winput" placeholder="Add a reminder…"><button class="wbtn primary">Add</button></div><div class="wg-list" data-l></div>';
+  var inp=el.querySelector('input'),list=el.querySelector('[data-l]');
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
+  function draw(){list.innerHTML='';
+    items.forEach(function(it,i){
+      var row=document.createElement('div');row.className='wg-item'+(it.done?' done':'');
+      var c=document.createElement('button');c.className='wcheck';c.textContent=it.done?'✓':'';
+      var s=document.createElement('span');s.textContent=it.text;
+      var x=document.createElement('button');x.className='wx';x.textContent='×';
+      c.addEventListener('click',function(){it.done=!it.done;save();draw()});
+      x.addEventListener('click',function(){items.splice(i,1);save();draw()});
+      row.appendChild(c);row.appendChild(s);row.appendChild(x);list.appendChild(row)});
+    if(!items.length){var e2=document.createElement('div');e2.className='wg-meta';e2.textContent='Nothing here. Add one above.';list.appendChild(e2)}}
+  function add(){var v=inp.value.trim();if(!v)return;items.push({text:v,done:false});inp.value='';save();draw()}
+  el.querySelector('button.wbtn.primary').addEventListener('click',add);
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')add()});
+  draw();
+}
+function wgBattery(el){
+  el.innerHTML='<div class="wg-time" data-d style="font-size:38px">--%</div><div class="wg-bar"><i data-b style="width:0%"></i></div><div class="wg-meta" data-m>Checking…</div>';
+  var d=el.querySelector('[data-d]'),b=el.querySelector('[data-b]'),m=el.querySelector('[data-m]');
+  function show(level,charging){d.textContent=level+'%';b.style.width=level+'%';
+    m.textContent=charging?'Charging':'On battery'+(level<=20?' — running low':'')}
+  function fail(){m.textContent='Battery status isn’t available in this browser.'}
+  if(navigator.getBattery){navigator.getBattery().then(function(bat){
+    function up(){show(Math.round(bat.level*100),bat.charging)}
+    bat.addEventListener('levelchange',up);bat.addEventListener('chargingchange',up);up();
+  }).catch(fail)}else fail();
+}
+var WIDGETS=[
+  ['Clock',wgClock],['Weather',wgWeather],['Calendar',wgCalendar],['Notes',wgNotes],
+  ['Timer',wgTimer],['Stopwatch',wgStopwatch],['Calculator',wgCalc],['Focus',wgFocus],
+  ['Reminders',wgReminders],['Battery',wgBattery]
+];
+(function buildWidgets(){
+  var g=document.getElementById('widgetGrid');if(!g||g.children.length)return;
+  WIDGETS.forEach(function(w){
+    var c=document.createElement('div');c.className='widget';
+    var h=document.createElement('div');h.className='wg-head';
+    var s=document.createElement('span');s.textContent=w[0];h.appendChild(s);
+    var body=document.createElement('div');body.className='wg-body';
+    c.appendChild(h);c.appendChild(body);g.appendChild(c);
+    try{w[1](body)}catch(e){body.innerHTML='<div class="wg-meta">Couldn’t load this widget.</div>'}
+  });
+})();
 /* ---------- settings ---------- */
 var SET_NAV=[['Appearance','◐'],['Workspaces','⧉'],['Apps','▦'],['Files','▤'],['System','🖥'],['Devices','📱'],['Network','⌁'],['Shortcuts','⌨'],['AI & Agents','✦'],['Sync & Backup','⤴'],['Advanced','⚙'],['About','ⓘ']];
 var ACCENTS=[['Green','#c5eaa5','rgba(197,234,165,.13)'],['Blue','#7fb2e5','rgba(127,178,229,.13)'],['Purple','#b79fe5','rgba(183,159,229,.13)'],['Pink','#e58bb1','rgba(229,139,177,.13)'],['Orange','#e5a87f','rgba(229,168,127,.13)'],['Yellow','#e5d97f','rgba(229,217,127,.13)'],['Gray','#93a197','rgba(147,161,151,.16)']];
@@ -2666,7 +2910,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-008';
+window.__MOOR_LIVE_VER='20260925-009';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
