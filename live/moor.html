@@ -193,10 +193,9 @@ input:focus,select:focus{border-color:var(--accent)}
 /* stationary panel, scrolling list (apps view) */
 #view-apps .panel{position:sticky;top:26px;max-height:calc(100dvh - var(--top-h) - 60px);display:flex;flex-direction:column}
 #view-apps .app-grid{overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin}
-/* ---------- widgets catalog ---------- */
-body[data-view="widgets"] #view-widgets{display:block}
-#view-widgets .panel{position:sticky;top:26px;max-height:calc(100dvh - var(--top-h) - 60px);display:flex;flex-direction:column}
-.widget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px;padding:18px 20px 26px;overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin}
+/* ---------- widgets catalog (lives in Settings) ---------- */
+.widget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
+.widget-grid.in-settings{padding:14px 2px 10px}
 .widget{background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(14px);box-shadow:var(--shadow-card);overflow:hidden;display:flex;flex-direction:column;min-height:216px}
 .wg-head{padding:13px 16px 0}
 .wg-head span{font-size:10.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted)}
@@ -456,7 +455,6 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 <nav class="rail" aria-label="Views">
   <button data-go="home" class="on" title="Home">⌂</button>
   <button data-go="apps" title="Apps">▦</button>
-  <button data-go="widgets" title="Widgets">⊞</button>
   <button data-go="projects" title="Projects">▤</button>
   <button data-go="workspaces" title="Workspaces">⧉</button>
   <button data-go="settings" title="Settings">⚙</button>
@@ -570,17 +568,6 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
     <div class="watermark">A CLEAN CANVAS<br>GOES FURTHER.<br><span>— moor</span></div>
   </section>
 
-  <section class="view" id="view-widgets" aria-label="Widgets">
-    <div class="panel">
-      <div class="panel-head">
-        <div><h2>⊞ Widgets</h2><p>Small tools for the canvas. Everything here works.</p></div>
-        <div class="sp"></div>
-        <button class="xbtn" data-go="home" title="Close">✕</button>
-      </div>
-      <div class="widget-grid" id="widgetGrid"></div>
-    </div>
-    <div class="watermark">A CLEAN CANVAS<br>GOES FURTHER.<br><span>— moor</span></div>
-  </section>
   <section class="view" id="view-settings" aria-label="Settings">
     <div class="panel">
       <div class="panel-head">
@@ -2806,8 +2793,10 @@ var WIDGETS=[
   ['Timer',wgTimer],['Stopwatch',wgStopwatch],['Calculator',wgCalc],['Focus',wgFocus],
   ['Reminders',wgReminders],['Battery',wgBattery]
 ];
-(function buildWidgets(){
-  var g=document.getElementById('widgetGrid');if(!g||g.children.length)return;
+var widgetsNode=null;
+function getWidgetsNode(){ // built once; setMain re-appends the same node so intervals never duplicate
+  if(widgetsNode)return widgetsNode;
+  var g=document.createElement('div');g.className='widget-grid in-settings';
   WIDGETS.forEach(function(w){
     var c=document.createElement('div');c.className='widget';
     var h=document.createElement('div');h.className='wg-head';
@@ -2816,9 +2805,10 @@ var WIDGETS=[
     c.appendChild(h);c.appendChild(body);g.appendChild(c);
     try{w[1](body)}catch(e){body.innerHTML='<div class="wg-meta">Couldn’t load this widget.</div>'}
   });
-})();
+  widgetsNode=g;return g;
+}
 /* ---------- settings ---------- */
-var SET_NAV=[['Appearance','◐'],['Workspaces','⧉'],['Apps','▦'],['Files','▤'],['System','🖥'],['Devices','📱'],['Network','⌁'],['Shortcuts','⌨'],['AI & Agents','✦'],['Sync & Backup','⤴'],['Advanced','⚙'],['About','ⓘ']];
+var SET_NAV=[['Appearance','◐'],['Widgets','⊞'],['Workspaces','⧉'],['Apps','▦'],['Files','▤'],['System','🖥'],['Devices','📱'],['Network','⌁'],['Shortcuts','⌨'],['AI & Agents','✦'],['Sync & Backup','⤴'],['Advanced','⚙'],['About','ⓘ']];
 var ACCENTS=[['Green','#c5eaa5','rgba(197,234,165,.13)'],['Blue','#7fb2e5','rgba(127,178,229,.13)'],['Purple','#b79fe5','rgba(183,159,229,.13)'],['Pink','#e58bb1','rgba(229,139,177,.13)'],['Orange','#e5a87f','rgba(229,168,127,.13)'],['Yellow','#e5d97f','rgba(229,217,127,.13)'],['Gray','#93a197','rgba(147,161,151,.16)']];
 var DEF={theme:'dark',accent:0,bg:'dynamic',blur:40,scale:100,style:'rounded',anim:true,motion:false};
 var SET=JSON.parse(JSON.stringify(DEF));
@@ -2880,6 +2870,11 @@ function drawSettings(){
       '<div class="set-row"><span>Source</span><small style="max-width:300px">This file is the whole app. No build step.</small></div>';
     return;
   }
+  if(setCur==='Widgets'){
+    setMain.innerHTML='<h3>Widgets</h3><p class="sub">Small tools for the canvas. Everything here works.</p>';
+    setMain.appendChild(getWidgetsNode());
+    return;
+  }
   if(setCur!=='Appearance'){setMain.innerHTML='<h3>'+esc(setCur)+'</h3><p class="sub">Not built yet.</p><p style="font-size:12px;color:var(--muted);max-width:420px">'+esc(SET_PLANNED[setCur]||'These controls are coming.')+'</p>';return}
   var a=ACCENTS[SET.accent];
   setMain.innerHTML='<h3>Appearance</h3><p class="sub">Make it feel like yours.</p>'+
@@ -2924,7 +2919,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-010';
+window.__MOOR_LIVE_VER='20260925-011';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
