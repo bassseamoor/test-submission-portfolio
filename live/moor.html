@@ -275,6 +275,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .ai-prov{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:10px 0;background:rgba(255,255,255,.02)}
 .ai-prov .ai-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .ai-prov .ai-head b{font-size:13px}
+.ai-free{font-size:10px;font-weight:700;color:#9fe07f;background:rgba(80,200,120,.12);border:1px solid rgba(80,200,120,.4);border-radius:20px;padding:1px 7px;margin-left:4px;letter-spacing:.06em;vertical-align:1px}
 .ai-prov .ai-head small{color:var(--muted);font-weight:400}
 .ai-keyrow{display:flex;gap:8px;margin-top:8px}
 .ai-keyrow input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit}
@@ -2831,7 +2832,13 @@ var AI_PROVIDERS=[
  {id:'github',name:'GitHub Models',blurb:'Free with a GitHub account · use a fine-grained PAT',test:null},
  {id:'mistral',name:'Mistral',blurb:'Free tier · La Plateforme',test:'https://api.mistral.ai/v1/models'},
  {id:'nvidia',name:'NVIDIA NIM',blurb:'Free credits · build.nvidia.com',test:'https://integrate.api.nvidia.com/v1/models'},
- {id:'jev',name:'Jev',blurb:'TypeSafe · System One decisions, no text',test:'https://api.typesafe.ai/v1/systemone',testPost:true,judge:false}
+ {id:'jev',name:'Jev',blurb:'TypeSafe · System One decisions, no text',test:'https://api.typesafe.ai/v1/systemone',testPost:true,judge:false},
+ {id:'cerebras',name:'Cerebras',blurb:'Free ~1M tokens/day · very fast',test:'https://api.cerebras.ai/v1/models',free:true},
+ {id:'sambanova',name:'SambaNova',blurb:'Free tier · fast open models',test:'https://api.sambanova.ai/v1/models',free:true},
+ {id:'zai',name:'Z.AI (GLM)',blurb:'Free GLM Flash tier',test:'https://api.z.ai/api/paas/v4/models',free:true},
+ {id:'cohere',name:'Cohere',blurb:'Free trial key · ~1k calls/mo',test:'https://api.cohere.com/v2/models',free:true},
+ {id:'huggingface',name:'Hugging Face',blurb:'Free inference with a free account',test:'https://huggingface.co/api/whoami-v2',free:true},
+ {id:'pollinations',name:'Pollinations',blurb:'100% free · no key needed',test:'https://text.pollinations.ai/models',free:true,nokey:true}
 ];
 var AI={ollama:'http://127.0.0.1:11434',keys:{},judge:'groq',verifier:'qwen3:8b'};
 function aiLoad(){try{var s=JSON.parse(localStorage.getItem(AI_KEY)||'null');if(s&&typeof s==='object')AI=Object.assign(AI,s)}catch(e){}}
@@ -2851,7 +2858,7 @@ function aiCheckOllama(msgEl){
 function aiTestProvider(p,msgEl){
   var key=AI.keys[p.id];
   msgEl.className='ai-status';
-  if(!key){msgEl.textContent='Save a key first.';return}
+  if(!key&&!p.nokey){msgEl.textContent='Save a key first.';return}
   if(!p.test){msgEl.textContent='Saved. This one has no quick check — the key will be used when you call it.';return}
   msgEl.textContent='Checking…';
   function done(ok,txt){msgEl.classList.add(ok?'ok':'bad');msgEl.textContent=txt}
@@ -2871,12 +2878,12 @@ function aiTestProvider(p,msgEl){
     }).catch(fail);
     return;
   }
-  var url=p.keyInUrl?p.test+encodeURIComponent(key):p.test;
+  var url=(p.keyInUrl&&key)?p.test+encodeURIComponent(key):p.test;
   var opts={signal:AbortSignal.timeout(10000)};
-  if(!p.keyInUrl){opts.headers={'Authorization':'Bearer '+key};if(p.id==='openrouter')opts.headers['X-Title']='moor'}
+  if(!p.keyInUrl&&key){opts.headers={'Authorization':'Bearer '+key};if(p.id==='openrouter')opts.headers['X-Title']='moor'}
   fetch(url,opts).then(function(r){
-    if(r.ok)done(true,'Connected · key works.');
-    else done(false,'Key was rejected (HTTP '+r.status+').');
+    if(r.ok)done(true,p.nokey?'Connected · free endpoint reachable.':'Connected · key works.');
+    else done(false,key?('Key was rejected (HTTP '+r.status+').'):('Check failed (HTTP '+r.status+').'));
   }).catch(fail);
 }
 function drawAISettings(){
@@ -2887,10 +2894,12 @@ function drawAISettings(){
   h+='<h4 style="margin:18px 0 4px;font-size:12px;letter-spacing:.08em;color:var(--muted)">CLOUD API KEYS</h4>';
   AI_PROVIDERS.forEach(function(p){
     var has=!!AI.keys[p.id];
-    h+='<div class="ai-prov"><div class="ai-head"><b>'+esc(p.name)+' <small>'+esc(p.blurb)+'</small></b>'+
-       '<span class="ai-status'+(has?' ok':'')+'">'+(has?'Saved':'Not set')+'</span></div>'+
-       '<div class="ai-keyrow"><input type="password" data-k="'+p.id+'" value="'+esc(AI.keys[p.id]||'')+'" placeholder="Paste key…" autocomplete="off" spellcheck="false">'+
-       '<button data-save="'+p.id+'">Save</button>'+(p.test?'<button data-test="'+p.id+'">Test</button>':'')+'</div>'+
+    h+='<div class="ai-prov"><div class="ai-head"><b>'+esc(p.name)+(p.free?' <span class="ai-free">FREE</span>':'')+' <small>'+esc(p.blurb)+'</small></b>'+
+       '<span class="ai-status'+(has?' ok':'')+'">'+(p.nokey?'No key needed':(has?'Saved':'Not set'))+'</span></div>'+
+       (p.nokey
+        ?'<div class="ai-keyrow"><button data-test="'+p.id+'">Test</button></div>'
+        :'<div class="ai-keyrow"><input type="password" data-k="'+p.id+'" value="'+esc(AI.keys[p.id]||'')+'" placeholder="Paste key…" autocomplete="off" spellcheck="false">'+
+         '<button data-save="'+p.id+'">Save</button>'+(p.test?'<button data-test="'+p.id+'">Test</button>':'')+'</div>')+
        '<div class="ai-status" data-msg="'+p.id+'"></div></div>';
   });
   h+='<h4 style="margin:18px 0 4px;font-size:12px;letter-spacing:.08em;color:var(--muted)">ROUTING</h4>'+
@@ -3057,7 +3066,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-016';
+window.__MOOR_LIVE_VER='20260925-017';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
