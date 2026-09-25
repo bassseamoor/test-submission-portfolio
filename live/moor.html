@@ -185,6 +185,11 @@ input:focus,select:focus{border-color:var(--accent)}
 .app-tabs button{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:9px;padding:7px 13px;font-size:12px;font-weight:650;cursor:pointer}
 .app-tabs button.on{background:var(--accent);color:var(--accent-ink)}
 .app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;padding:16px 20px 24px}
+.tab-input{background:transparent;border:1px solid var(--accent);color:var(--text);border-radius:9px;padding:7px 10px;font-size:12px;font-weight:650;width:120px;outline:none}
+.ctxmenu{position:fixed;z-index:9000;background:var(--panel2);border:1px solid var(--border2);border-radius:12px;padding:6px;min-width:180px;box-shadow:0 18px 50px rgba(0,0,0,.5);backdrop-filter:blur(14px)}
+.ctxmenu button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--text);font-size:12.5px;font-weight:600;padding:8px 10px;border-radius:8px;cursor:pointer}
+.ctxmenu button:hover{background:rgba(255,255,255,.07)}
+.app-empty{grid-column:1/-1;padding:28px 12px;color:var(--muted);font-size:12.5px;text-align:center;line-height:1.7}
 /* stationary panel, scrolling list (apps view) */
 #view-apps .panel{position:sticky;top:26px;max-height:calc(100dvh - var(--top-h) - 60px);display:flex;flex-direction:column}
 #view-apps .app-grid{overflow-y:auto;min-height:0;flex:1;scrollbar-width:thin}
@@ -512,7 +517,6 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
       <div class="app-tabs" id="appTabs">
         <button class="on" data-f="all">All</button>
         <button data-f="create">Create</button>
-        <button data-f="worlds">Worlds</button>
         <button data-f="tools">Tools</button>
         <button data-f="media">Media</button>
         <button data-f="dev">Dev</button>
@@ -2369,12 +2373,26 @@ function appTile(a,planned){
   d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><span class="txt"><b>'+esc(a[0])+'</b><span class="acat">'+esc(a[3])+'</span></span>'+(planned?'<span class="planned-tag">PLANNED</span>':'<span class="go">→</span>');
   if(!planned)d.addEventListener('click',function(){openApp(a[0])});
   else d.title=a[0]+' is planned — not built yet.';
+  d.addEventListener('contextmenu',function(e){e.preventDefault();appTabMenu(e,a[0])});
   return d;
 }
 function drawApps(){
   appGrid.innerHTML='';
-  var connected=APPS.filter(function(a){return a[4]&&(appF==='all'||a[3]===appF)});
-  var planned=APPS.filter(function(a){return !a[4]&&(appF==='all'||a[3]===appF)});
+  var list,emptyTab=null;
+  if(appF.indexOf('custom:')===0){
+    var tn=appF.slice(7),names=tabApps[tn]||[];
+    list=APPS.filter(function(a){return names.indexOf(a[0])>=0});
+    if(!list.length)emptyTab=tn;
+  }else{
+    list=APPS.filter(function(a){return appF==='all'||a[3]===appF});
+  }
+  if(emptyTab){
+    var em=document.createElement('div');em.className='app-empty';
+    em.textContent='\u201C'+emptyTab+'\u201D is empty. Right-click any app to add it here.';
+    appGrid.appendChild(em);return;
+  }
+  var connected=list.filter(function(a){return a[4]});
+  var planned=list.filter(function(a){return !a[4]});
   if(connected.length){
     var h1=document.createElement('div');h1.className='app-sec';h1.textContent='Connected';appGrid.appendChild(h1);
     connected.forEach(function(a){appGrid.appendChild(appTile(a,false))});
@@ -2385,20 +2403,154 @@ function drawApps(){
     note.textContent='These apps are not built yet. They are placeholders for what is coming — nothing here is broken, there is just nothing to open.';
     appGrid.appendChild(note);
     planned.forEach(function(a){appGrid.appendChild(appTile(a,true))});
+    if(appF==='all'){
     var add=document.createElement('div');add.className='app planned';
     add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><span class="txt"><b>Add App</b></span><span class="planned-tag">PLANNED</span>';
     add.title='An app library is planned — not built yet.';
     appGrid.appendChild(add);
+    }
   }
 }
 function openApp(name){
   if(name==='MOOR City'){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank');return}
   if(name==='Settings'){go('settings');return}
 }
-$$('#appTabs button').forEach(function(b){b.addEventListener('click',function(){
-  if(b.dataset.f==='add'){toast('Custom tabs are planned — not available yet.');return}
-  $$('#appTabs button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');appF=b.dataset.f;drawApps();
-})});
+/* ---------- custom tabs ---------- */
+var BUILTIN_TABS=[['all','All'],['create','Create'],['tools','Tools'],['media','Media'],['dev','Dev']];
+var TABS_KEY='moor.tabs.v1',TABAPPS_KEY='moor.tabapps.v1';
+function loadTabs(){
+  try{var t=JSON.parse(localStorage.getItem(TABS_KEY)||'null');
+    if(Array.isArray(t))return t.filter(function(x){return typeof x==='string'&&x.trim()}).slice(0,20)}catch(e){}
+  var seed=['worlds']; // worlds is a custom tab, not a built-in
+  try{localStorage.setItem(TABS_KEY,JSON.stringify(seed))}catch(e){}
+  return seed;
+}
+function loadTabApps(){
+  try{var m=JSON.parse(localStorage.getItem(TABAPPS_KEY)||'null');
+    if(m&&typeof m==='object')return m}catch(e){}
+  var seed={};
+  APPS.forEach(function(a){if(a[3]==='worlds'){(seed.worlds=seed.worlds||[]).push(a[0])}});
+  try{localStorage.setItem(TABAPPS_KEY,JSON.stringify(seed))}catch(e){}
+  return seed;
+}
+var customTabs=loadTabs(),tabApps=loadTabApps();
+function saveTabs(){try{localStorage.setItem(TABS_KEY,JSON.stringify(customTabs))}catch(e){}}
+function saveTabApps(){try{localStorage.setItem(TABAPPS_KEY,JSON.stringify(tabApps))}catch(e){}}
+function setTab(f){closeCtx();appF=f;renderTabs();drawApps()}
+function renderTabs(){
+  var bar=$('#appTabs');bar.innerHTML='';
+  BUILTIN_TABS.forEach(function(t){
+    var b=document.createElement('button');b.textContent=t[1];b.dataset.f=t[0];
+    if(appF===t[0])b.classList.add('on');
+    b.addEventListener('click',function(){setTab(t[0])});
+    bar.appendChild(b);
+  });
+  customTabs.forEach(function(name){
+    var b=document.createElement('button');b.textContent=name;b.dataset.f='custom:'+name;
+    if(appF==='custom:'+name)b.classList.add('on');
+    b.addEventListener('click',function(){setTab('custom:'+name)});
+    b.addEventListener('contextmenu',function(e){e.preventDefault();tabMenu(e,name)});
+    bar.appendChild(b);
+  });
+  var add=document.createElement('button');add.textContent='+';add.title='Add tab';add.dataset.f='add';
+  add.addEventListener('click',addTabUI);bar.appendChild(add);
+}
+var ctxEl=null;
+function closeCtx(){if(ctxEl){ctxEl.remove();ctxEl=null}}
+function showCtx(x,y,items){
+  closeCtx();
+  var m=document.createElement('div');m.className='ctxmenu';
+  items.forEach(function(it){
+    var b=document.createElement('button');b.textContent=it.label;
+    b.addEventListener('click',function(){closeCtx();it.fn()});
+    m.appendChild(b);
+  });
+  document.body.appendChild(m);
+  var r=m.getBoundingClientRect();
+  m.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';
+  m.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';
+  ctxEl=m;
+}
+document.addEventListener('click',function(e){if(ctxEl&&!ctxEl.contains(e.target))closeCtx()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCtx()});
+function tabInput(host,initial,onCommit){
+  if(host.querySelector('.tab-input'))return;
+  var inp=document.createElement('input');inp.className='tab-input';inp.maxLength=24;
+  if(initial){inp.value=initial}else{inp.placeholder='Tab name\u2026'}
+  var ref=host.querySelector('[data-f="add"]');
+  if(ref)host.insertBefore(inp,ref);else host.appendChild(inp);
+  inp.focus();inp.select();
+  var done=false;
+  function fin(commit){
+    if(done)return;done=true;
+    var v=inp.value.trim();
+    if(inp.parentNode)inp.parentNode.removeChild(inp);
+    if(commit)onCommit(v);
+    renderTabs();
+  }
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter')fin(true);
+    if(e.key==='Escape')fin(false);
+  });
+  inp.addEventListener('blur',function(){fin(true)});
+}
+function addTabUI(){
+  tabInput($('#appTabs'),null,function(v){
+    if(!v)return;
+    if(customTabs.indexOf(v)>=0){toast('That tab already exists.');return}
+    customTabs.push(v);saveTabs();setTab('custom:'+v);toast('Tab \u201C'+v+'\u201D created');
+  });
+}
+function renameTabUI(name){
+  var bar=$('#appTabs'),btn=null;
+  Array.prototype.forEach.call(bar.querySelectorAll('button'),function(b){if(b.dataset.f==='custom:'+name)btn=b});
+  if(!btn)return;
+  var inp=document.createElement('input');inp.className='tab-input';inp.value=name;inp.maxLength=24;
+  bar.replaceChild(inp,btn);inp.focus();inp.select();
+  var done=false;
+  function fin(commit){
+    if(done)return;done=true;
+    var v=inp.value.trim();
+    if(commit&&v&&v!==name){
+      if(customTabs.indexOf(v)>=0){toast('That tab already exists.')}
+      else{
+        customTabs[customTabs.indexOf(name)]=v;
+        tabApps[v]=tabApps[name]||[];delete tabApps[name];
+        if(appF==='custom:'+name)appF='custom:'+v;
+        saveTabs();saveTabApps();toast('Renamed to \u201C'+v+'\u201D');
+      }
+    }
+    renderTabs();drawApps();
+  }
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter')fin(true);
+    if(e.key==='Escape')fin(false);
+  });
+  inp.addEventListener('blur',function(){fin(true)});
+}
+function tabMenu(e,name){
+  showCtx(e.clientX,e.clientY,[
+    {label:'Rename tab',fn:function(){renameTabUI(name)}},
+    {label:'Delete tab',fn:function(){
+      customTabs=customTabs.filter(function(t){return t!==name});
+      delete tabApps[name];saveTabs();saveTabApps();
+      if(appF==='custom:'+name)appF='all';
+      renderTabs();drawApps();toast('Deleted tab \u201C'+name+'\u201D');
+    }}
+  ]);
+}
+function appTabMenu(e,appName){
+  if(!customTabs.length){toast('Press + to make a tab first.');return}
+  showCtx(e.clientX,e.clientY,customTabs.map(function(t){
+    var has=(tabApps[t]||[]).indexOf(appName)>=0;
+    return {label:(has?'\u2713 ':'')+'Add to \u201C'+t+'\u201D',fn:function(){
+      var arr=tabApps[t]=tabApps[t]||[];
+      if(arr.indexOf(appName)<0){arr.push(appName);saveTabApps();toast(appName+' \u2192 '+t)}
+      drawApps();
+    }};
+  }));
+}
+renderTabs();
 /* apps grid/list view toggle */
 var appView='grid';
 function setAppView(v){
@@ -2514,7 +2666,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-007';
+window.__MOOR_LIVE_VER='20260925-008';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
