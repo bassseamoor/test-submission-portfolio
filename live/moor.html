@@ -93,6 +93,12 @@ input:focus,select:focus{border-color:var(--accent)}
 .proj-switch button{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:99px;padding:7px 16px;font-size:12px;font-weight:650;cursor:pointer}
 .proj-switch button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-bottom:22px}
+.proj-empty{grid-column:1/-1;padding:34px 20px;text-align:center;color:var(--muted);font-size:13px}
+.proj-empty p{max-width:52ch;margin:10px auto 16px;line-height:1.6}
+.proj-sources{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.proj-src{background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);cursor:pointer;font-size:12px;padding:7px 13px}
+.proj-src.on{background:var(--accent-dim);border-color:var(--accent);color:var(--text)}
+.folder.up{opacity:.75}
 .folder{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:14px 8px 10px;text-align:center;cursor:pointer}
 .folder:hover{border-color:var(--border2);background:rgba(255,255,255,.05)}
 .folder .fi{font-size:30px;line-height:1}
@@ -154,6 +160,9 @@ input:focus,select:focus{border-color:var(--accent)}
 .ws-meta b{font-size:12px;font-weight:650}
 .ws-meta small{display:block;font-size:10px;color:var(--muted)}
 .ws-meta .star{color:var(--accent)}
+.ws-acts{display:flex;gap:2px;padding:0 10px 10px}
+.ws-acts button{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:11px;padding:3px 9px}
+.ws-acts button:hover{color:var(--text);border-color:var(--border2)}
 .ws-new{border-style:dashed;display:grid;place-items:center;min-height:170px;color:var(--muted);background:transparent;width:100%;border-radius:12px;border:1px dashed var(--border2);cursor:pointer;font-size:12px}
 .ws-new:hover{color:var(--text)}
 /* apps */
@@ -165,6 +174,11 @@ input:focus,select:focus{border-color:var(--accent)}
 .app:hover{border-color:var(--border2);background:rgba(255,255,255,.05)}
 .app .ai{font-size:26px;line-height:1}
 .app b{display:block;font-size:11px;margin-top:9px;font-weight:650}
+.app-sec{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:10px 2px 0}
+.app-note{grid-column:1/-1;font-size:12px;color:var(--muted);padding:0 2px}
+.app.planned{cursor:default;opacity:.62}
+.app.planned:hover{transform:none}
+.app .planned-tag{display:inline-block;margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--faint);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
 /* settings */
 .set-body{display:grid;grid-template-columns:190px minmax(0,1fr) 250px;min-height:520px}
 .set-nav{border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
@@ -311,7 +325,10 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,1
 .cp-launch{position:fixed;left:22px;bottom:20px;z-index:5000;display:flex;align-items:center;gap:8px}
 .cp-launch button{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;white-space:nowrap}
 .cp-launch button.cp-primary{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
-.cp-launch #colonyProductionStatus{font-size:10px;color:var(--faint)}
+.cp-launch #moorProductionStatus{font-size:10px;color:var(--faint)}
+/* production drawer: inlined from production/moor-production.css as belt-and-braces
+   (the drawer also requests moor-production.css from the local server) */
+.cp-launch{position:fixed;left:18px;bottom:18px;z-index:9500;display:flex;gap:7px;align-items:center;padding:7px;border:1px solid #394340;border-radius:16px;background:#121917;color:#edf6ef;box-shadow:0 8px 30px #0006;font:13px/1.4 system-ui}.cp-launch button,.cp-drawer button,.cp-connect button{border:1px solid #3a4941;border-radius:10px;padding:10px 15px;background:#202c25;color:#edf6ef;font:600 13px/1.4 system-ui;cursor:pointer}.cp-launch .cp-primary{background:#c5eaa5;color:#14200e}.cp-launch #moorProductionStatus:empty{display:none}.cp-launch #moorProductionStatus{max-width:270px;font-size:11px}.cp-drawer,.cp-drawer *{box-sizing:border-box}.cp-drawer{position:fixed;inset:0;z-index:1000000;background:#0009;display:grid;place-items:center;padding:24px;font:14px/1.5 system-ui;color:#edf4ef}.cp-drawer-panel{width:min(100%,1000px);max-height:90dvh;overflow:auto;background:#111916;border:1px solid #35483b;border-radius:24px;padding:30px;box-shadow:0 24px 90px #0008}.cp-drawer header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.cp-drawer h2{font:600 34px/1.1 system-ui;margin:7px 0}.cp-drawer small{font:600 10px system-ui;letter-spacing:2px;color:#abc49f}.cp-drawer p{color:#a7b6ad;margin:10px 0 20px}.cp-drawer input{width:100%;border:1px solid #405248;border-radius:12px;padding:14px;background:#1b2721;color:#f1f5ef;font:14px system-ui}.cp-filters{display:flex;gap:6px;overflow:auto;margin:16px 0}.cp-filters button{white-space:nowrap}.cp-filters button[aria-pressed=true]{background:#c5eaa5;color:#17230f}.cp-app-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}.cp-app{display:flex;flex-direction:column;border:1px solid #34473a;border-radius:15px;background:#1b2620;overflow:hidden}.cp-app .cp-app-open{display:grid;align-content:start;text-align:left;border:0;background:none;padding:17px;flex:1;gap:8px}.cp-app-open strong{font-size:16px}.cp-app-open p{font-weight:400;font-size:12px;margin:0;line-height:1.6}.cp-app-icon{display:grid;place-items:center;background:#314b36;color:#c5eaa5;width:34px;height:34px;border-radius:10px;font-size:17px}.cp-app-actions{display:flex;justify-content:space-between;padding:0 12px 12px}.cp-app-actions button{padding:5px 10px;font-size:11px;background:transparent}.cp-app-actions button[aria-pressed=true]{color:#cfedb3}.cp-empty{grid-column:1/-1;padding:24px}.cp-drawer button:hover,.cp-launch button:hover{filter:brightness(1.18)}.cp-drawer :focus-visible,.cp-launch :focus-visible,.cp-connect :focus-visible{outline:2px solid #c5eaa5;outline-offset:3px}.cp-production-window .cui-window-body{padding:0!important;min-height:0;overflow:hidden!important;display:flex;flex-direction:column}.cp-production-frame{width:100%;height:100%;flex:1;border:0;background:#101213;min-height:0}.cp-connect{padding:35px;font:14px/1.6 system-ui;color:#e8efe8}.cp-connect h2{font-size:26px}.cp-connect p{color:#a6b6a9;max-width:64ch}.cp-connect .cp-detail{font-size:12px}@media(max-width:780px){.cp-app-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-drawer-panel{padding:20px}}@media(max-width:500px){.cp-drawer{padding:10px}.cp-app-grid{grid-template-columns:1fr}.cp-launch{left:10px;bottom:10px}.cp-launch #moorProductionStatus{max-width:140px}}
 /* watermark: clear of content, never colliding */
 .watermark{top:auto;bottom:110px;right:40px;pointer-events:none;z-index:5}
 @media(max-width:1100px){.watermark{display:none}}
@@ -386,7 +403,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
       <div class="panel-head">
         <button class="iconbtn" title="Back">←</button>
         <button class="iconbtn" title="Forward">→</button>
-        <div class="crumb" style="margin:0">▤&nbsp; Projects &nbsp;›&nbsp; <b id="crumbProj">MOOR City</b></div>
+        <div class="crumb" style="margin:0">▤&nbsp; Projects &nbsp;›&nbsp; <b id="crumbProj">Folders</b></div>
         <div class="sp"></div>
         <button class="iconbtn" title="Grid">▦</button>
         <button class="iconbtn" title="List">☰</button>
@@ -409,7 +426,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
         </div>
         <div class="proj-main">
           <div class="proj-switch">
-            <button id="swMoor" class="on">MOOR City</button>
+            <button id="swMoor" class="on">▤ Folders</button>
             <button id="swAq">🐠 Aquarium</button>
           </div>
           <div id="moorProj">
@@ -436,7 +453,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
         <input type="search" id="wsSearch" placeholder="Search workspaces…" aria-label="Search workspaces" style="width:200px">
         <button class="iconbtn on" title="Grid">▦</button>
         <button class="iconbtn" title="List">☰</button>
-        <button class="btn primary">+ Save Current Layout</button>
+        <button class="btn primary" id="wsSaveBtn">+ Save Current Layout</button>
         <button class="xbtn" data-go="home" title="Close">✕</button>
       </div>
       <div class="ws-tabs" id="wsTabs">
@@ -512,7 +529,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 </div>
 <div id="toast" hidden></div>
 
-<script>/* ===== boot: rename-safety (20260924-008) =====
+<script>/* ===== boot: rename-safety (20260925-001) =====
  * Runs before every other subsystem (first entry in seams.json). Two jobs:
  *
  *  1. STORAGE-KEY MIGRATION: every known `colony.*` key is copied to its
@@ -564,10 +581,21 @@ for(var i=0;i<MIGRATE.length;i++){
   })(MIGRATE[i][0],MIGRATE[i][1],MIGRATE[i][2]);
 }
 
-/* bridge aliases: canonical window.moorRuntimeBridge, legacy window.COLONYRuntimeBridge */
+/* bridge aliases: canonical window.moorRuntimeBridge, legacy window.COLONYRuntimeBridge.
+   If no host (PC runtime, extension, userscript) provided one, the bundle defines
+   a working bridge itself so search tiles, the palette, and the production
+   drawer's Continuity/Renderer/Moor City entries actually open something. */
 try{
   var rb=window.moorRuntimeBridge||window.COLONYRuntimeBridge||null;
-  if(rb){window.moorRuntimeBridge=rb;window.COLONYRuntimeBridge=rb;}
+  if(!rb){
+    rb={
+      openContinuity:function(){var c=window.moorContinuity||window.COLONYContinuity;if(c&&c.open){c.open();return true}return false},
+      openRenderer:function(){window.open('https://bassseamoor.github.io/render-queue/','_blank','noopener,noreferrer');return true},
+      openChatGPT:function(){window.open('https://chat.openai.com/','_blank','noopener,noreferrer');return true},
+      openMoorCity:function(){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank','noopener,noreferrer');return true}
+    };
+  }
+  window.moorRuntimeBridge=rb;window.COLONYRuntimeBridge=rb;
 }catch(e){}
 })();
 </script>
@@ -650,7 +678,87 @@ try{
 
   function persist(){
     state.updatedAt=now();
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch{}
+    /* ENCRYPTED COPY (real): service records whose policy is 'encrypted-copy'
+       are stored as AES-GCM ciphertext under ENC_KEY; the main record keeps
+       only a placeholder (id + policy), so plaintext never rests in storage.
+       The async encrypt step merges into a synchronously-read safety net, so a
+       previous ciphertext survives if this tab dies mid-encrypt. */
+    let enc={};try{enc=JSON.parse(localStorage.getItem(ENC_KEY)||'{}')||{}}catch{enc={}}
+    const ids=new Set();
+    const clean={...state,serviceSources:(state.serviceSources||[]).map(s=>{
+      if(s&&s.policy==='encrypted-copy'&&!s._encPlaceholder){ids.add(s.id);return {id:s.id,kind:s.kind,policy:'encrypted-copy',_encPlaceholder:true}}
+      return s;
+    })};
+    for(const k of Object.keys(enc)) if(!ids.has(k)) delete enc[k];
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(clean))}catch{}
+    try{localStorage.setItem(ENC_KEY,JSON.stringify(enc))}catch{}
+    if(ids.size&&window.crypto?.subtle){
+      (async()=>{
+        try{
+          const key=await getEncKey();
+          let cur={};try{cur=JSON.parse(localStorage.getItem(ENC_KEY)||'{}')||{}}catch{cur={}}
+          for(const s of state.serviceSources){if(s&&s.policy==='encrypted-copy'&&!s._encPlaceholder)cur[s.id]=await encRecord(key,s)}
+          try{localStorage.setItem(ENC_KEY,JSON.stringify(cur))}catch{}
+        }catch{}
+      })();
+    }
+  }
+
+  /* ----- encrypted-copy key + AES-GCM helpers (scoped to this module) ----- */
+  const ENC_KEY='moor-continuity-client-enc-v1';
+  const ENC_IDB='moor-continuity-crypto',ENC_STORE='keys',ENC_ID='enc-key-1',ENC_JWK_LS='moor-continuity-enc-jwk-v1';
+  const _te=new TextEncoder(),_td=new TextDecoder();
+  function _b64e(bytes){let s='';const b=new Uint8Array(bytes);for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s)}
+  function _b64d(s){const bin=atob(s);const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return b}
+  function _idbReq(req){return new Promise((res,rej)=>{req.onsuccess=()=>res(req.result||null);req.onerror=()=>rej(req.error)})}
+  function _idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open(ENC_IDB,1);r.onupgradeneeded=()=>{r.result.createObjectStore(ENC_STORE)};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+  let _encKey=null;
+  async function getEncKey(){
+    if(_encKey)return _encKey;
+    const subtle=window.crypto?.subtle;if(!subtle)throw new Error('WebCrypto unavailable');
+    const params={name:'AES-GCM',length:256};
+    try{ /* IndexedDB preferred: key never sits in plain localStorage */
+      const db=await _idbOpen();
+      const jwk=await _idbReq(db.transaction(ENC_STORE,'readonly').objectStore(ENC_STORE).get(ENC_ID));
+      if(jwk){_encKey=await subtle.importKey('jwk',jwk,params,true,['encrypt','decrypt']);return _encKey}
+      const k=await subtle.generateKey(params,true,['encrypt','decrypt']);
+      await _idbReq(db.transaction(ENC_STORE,'readwrite').objectStore(ENC_STORE).put(await subtle.exportKey('jwk',k),ENC_ID));
+      _encKey=k;return _encKey;
+    }catch(e){/* fall through to localStorage */}
+    try{
+      const raw=localStorage.getItem(ENC_JWK_LS);
+      if(raw){_encKey=await subtle.importKey('jwk',JSON.parse(raw),params,true,['encrypt','decrypt']);return _encKey}
+      const k=await subtle.generateKey(params,true,['encrypt','decrypt']);
+      localStorage.setItem(ENC_JWK_LS,JSON.stringify(await subtle.exportKey('jwk',k)));
+      _encKey=k;return _encKey;
+    }catch(e2){throw new Error('No usable key store in this browser')}
+  }
+  async function encRecord(key,obj){
+    const iv=window.crypto.getRandomValues(new Uint8Array(12));
+    const ct=await window.crypto.subtle.encrypt({name:'AES-GCM',iv},key,_te.encode(JSON.stringify(obj)));
+    return {v:1,alg:'AES-256-GCM',iv:_b64e(iv),ct:_b64e(ct)};
+  }
+  async function decRecord(key,rec){
+    const pt=await window.crypto.subtle.decrypt({name:'AES-GCM',iv:_b64d(rec.iv)},key,_b64d(rec.ct));
+    return JSON.parse(_td.decode(pt));
+  }
+  /* Merge decrypted encrypted-copy records back into state after load. */
+  async function hydrateEncrypted(){
+    let enc={};try{enc=JSON.parse(localStorage.getItem(ENC_KEY)||'{}')||{}}catch{return}
+    const ids=Object.keys(enc);if(!ids.length||!window.crypto?.subtle)return;
+    try{
+      const key=await getEncKey();
+      let changed=false;
+      for(const id of ids){
+        const i=(state.serviceSources||[]).findIndex(s=>s&&s.id===id);
+        if(i<0)continue;
+        try{
+          const rec=await decRecord(key,enc[id]);
+          if(rec&&rec.policy==='encrypted-copy'){state.serviceSources[i]=rec;changed=true}
+        }catch(e){state.serviceSources[i]={...state.serviceSources[i],decryptFailed:true};changed=true}
+      }
+      if(changed&&typeof render==='function'&&panel)render();
+    }catch{}
   }
 
   function activeProject(){
@@ -690,7 +798,7 @@ try{
         deviceId:nodeStatus.device?.id||null,
         deviceName:nodeStatus.device?.name||null,
         runtimeUrl:(window.moorRuntimeBridge||window.COLONYRuntimeBridge)?.getRuntimeUrl?.()||'http://127.0.0.1:39501/moor-city/index.html',
-        client:'COLONY',
+        client:'MOOR',
         capturedAt:now()
       };
       persist();
@@ -729,7 +837,7 @@ try{
     return {
       schema:'moor.continuity.handoff/1',
       generatedAt:now(),
-      continuityClient:`COLONY/${CLIENT_VERSION}`,
+      continuityClient:`MOOR/${CLIENT_VERSION}`,
       project,
       device:nodeStatus?.device?clone(nodeStatus.device):null,
       sources:[...localSources,...services],
@@ -843,14 +951,15 @@ try{
       </section>
       <aside style="display:grid;gap:12px;align-content:start">
         <section class="continuity-card"><div class="continuity-kicker">Search everywhere connected</div><div class="continuity-field"><input class="continuity-search" id="ctSearch" placeholder="money tower, renderer, architecture..." value=""></div><div class="continuity-row" style="margin-top:8px"><button class="continuity-btn primary" data-ct-action="search">SEARCH</button><label class="continuity-chip"><input type="checkbox" id="ctDeepSearch"> TEXT CONTENT</label></div><div class="continuity-results" id="ctResults">${renderSearchResults()}</div>${renderPreview()}</section>
-        <section class="continuity-card"><div class="continuity-kicker">Storage doctrine</div><h3>Policy is per source.</h3><div class="continuity-muted">LOCAL ONLY · METADATA ONLY · ENCRYPTED COPY · CLOUD CANONICAL · REMOTE ACCESS ONLY. v1 implements local access/provenance and handoff; MOOR Cloud relay is intentionally not faked.</div></section>
+        <section class="continuity-card"><div class="continuity-kicker">Storage doctrine</div><h3>Policy is per source.</h3><div class="continuity-muted">LOCAL ONLY · METADATA ONLY · ENCRYPTED COPY · CLOUD CANONICAL · REMOTE ACCESS ONLY. ENCRYPTED COPY really encrypts the source's stored copy in this browser (AES-256-GCM; the key is generated here and kept in this browser's IndexedDB, localStorage if IndexedDB is unavailable). CLOUD CANONICAL cannot be selected yet — no cloud backend is configured.</div></section>
       </aside>
     </div>`;
   }
 
   function sourceRow(s,isLocal){
     const path=s.path||s.url||s.kind||'';
-    return `<div class="continuity-source" data-source-id="${esc(s.id)}" data-local="${isLocal?'1':'0'}"><div><div class="continuity-source-name">${esc(s.label||s.id)}</div><div class="continuity-source-meta">${esc(path)}</div></div><div class="continuity-row"><select data-source-policy="${esc(s.id)}"><option value="local-only" ${s.policy==='local-only'?'selected':''}>LOCAL ONLY</option><option value="metadata-only" ${s.policy==='metadata-only'?'selected':''}>METADATA ONLY</option><option value="encrypted-copy" ${s.policy==='encrypted-copy'?'selected':''}>ENCRYPTED COPY</option><option value="cloud-canonical" ${s.policy==='cloud-canonical'?'selected':''}>CLOUD CANONICAL</option><option value="remote-access-only" ${s.policy==='remote-access-only'?'selected':''}>REMOTE ACCESS ONLY</option></select>${isLocal?`<button class="continuity-btn danger" data-remove-source="${esc(s.id)}">×</button>`:`<button class="continuity-btn" data-open-service="${esc(s.id)}">OPEN</button>`}</div></div>`;
+    const encNote=s.decryptFailed?`<div class="continuity-source-meta" style="color:#e5a87f">Stored encrypted copy could not be unlocked in this browser.</div>`:(s._encPlaceholder?`<div class="continuity-source-meta">Stored copy is encrypted (AES-256-GCM) in this browser.</div>`:'');
+    return `<div class="continuity-source" data-source-id="${esc(s.id)}" data-local="${isLocal?'1':'0'}"><div><div class="continuity-source-name">${esc(s.label||s.id)}</div><div class="continuity-source-meta">${esc(path)}</div>${encNote}</div><div class="continuity-row"><select data-source-policy="${esc(s.id)}"><option value="local-only" ${s.policy==='local-only'?'selected':''}>LOCAL ONLY</option><option value="metadata-only" ${s.policy==='metadata-only'?'selected':''}>METADATA ONLY</option><option value="encrypted-copy" ${s.policy==='encrypted-copy'?'selected':''}>ENCRYPTED COPY</option><option value="cloud-canonical" disabled ${s.policy==='cloud-canonical'?'selected':''}>CLOUD CANONICAL — not available</option><option value="remote-access-only" ${s.policy==='remote-access-only'?'selected':''}>REMOTE ACCESS ONLY</option></select>${isLocal?`<button class="continuity-btn danger" data-remove-source="${esc(s.id)}">×</button>`:`<button class="continuity-btn" data-open-service="${esc(s.id)}">OPEN</button>`}</div></div>`;
   }
 
   function renderSearchResults(){
@@ -902,6 +1011,10 @@ try{
     body.querySelectorAll('[data-ct-tab]').forEach(b=>b.addEventListener('click',()=>{syncEditor();activeTab=b.dataset.ctTab;render()}));
     body.querySelectorAll('[data-source-policy]').forEach(sel=>sel.addEventListener('change',async()=>{
       const id=sel.dataset.sourcePolicy;
+      if(sel.value==='cloud-canonical'){ /* option is disabled; this is belt-and-braces */
+        const cur=((nodeStatus?.sources||[]).find(s=>s.id===id)||state.serviceSources.find(s=>s.id===id)||{}).policy||'local-only';
+        sel.value=cur;toast('Cloud Canonical is not available yet — no cloud backend is configured.','warn');return;
+      }
       const local=(nodeStatus?.sources||[]).find(s=>s.id===id);
       if(local){
         try{await api('/__continuity/source/add',{method:'POST',body:JSON.stringify({path:local.path,label:local.label,projectId:local.projectId||'',policy:sel.value})});await refreshNode();toast('Source policy updated')}catch(err){toast(err.message,'warn')}
@@ -1009,7 +1122,7 @@ try{
     if(input){input.value=String(query||'');if(input.value.trim())await runSearch()}
   }
 
-  /* rename-safety (20260924-008): window.moorContinuity is canonical;
+  /* rename-safety (20260925-001): window.moorContinuity is canonical;
      window.COLONYContinuity stays as a legacy alias to the same object. */
   window.moorContinuity={
     version:CLIENT_VERSION,
@@ -1025,6 +1138,7 @@ try{
     save:()=>saveActiveCapsule(false)
   };
   window.COLONYContinuity=window.moorContinuity; /* legacy alias (rename-safety) */
+  hydrateEncrypted(); /* decrypt encrypted-copy records persisted by an earlier session */
 
   window.addEventListener('message',e=>{
     if(e.origin!==location.origin)return;
@@ -1049,9 +1163,9 @@ try{
 /* ===== inlined: subsystem:update/colony-updater.js ===== */
 (()=>{'use strict';
 const LEGACY_BLOCKED=[/colony-search-suggestions\.js$/];
-const load=(src,label)=>{if(LEGACY_BLOCKED.some(rx=>rx.test(src))){console.warn('[COLONY] blocked legacy module (conflicting asset): '+(label||src));return Promise.resolve();}
+const load=(src,label)=>{if(LEGACY_BLOCKED.some(rx=>rx.test(src))){console.warn('[moor] blocked legacy module (conflicting asset): '+(label||src));return Promise.resolve();}
 return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.crossOrigin='anonymous';s.onload=resolve;s.onerror=()=>reject(new Error(label+' failed to load'));document.head.appendChild(s)})};
-/* ===== rename-safety (20260924-008): dual-path local loads =====
+/* ===== rename-safety (20260925-001): dual-path local loads =====
  * The PC runtime is being renamed colony-* -> moor-*. Each local script is
  * tried as moor-*.js FIRST, falling back to colony-*.js, so this bundle keeps
  * working whether the PC's update/ files are already renamed or not.
@@ -1064,15 +1178,15 @@ return new Promise((resolve,reject)=>{const s=document.createElement('script');s
  * refusing that file under either name. */
 const LOCAL_RT='http://127.0.0.1:39501/update/';
 const loadDual=(moorFile,colonyFile,label)=>load(LOCAL_RT+moorFile,label+' [moor]').catch(()=>load(LOCAL_RT+colonyFile,label+' [colony]'));
-loadDual('moor-ui-system.js','colony-ui-system.js','COLONY UI system')
-.catch(err=>console.error('[COLONY UI system]',err));
+loadDual('moor-ui-system.js','colony-ui-system.js','moor UI system')
+.catch(err=>console.error('[moor UI system]',err));
 loadDual('moor-tile-maker.js','colony-tile-maker.js','UI Maker')
-.catch(err=>console.error('[COLONY UI Maker]',err));
+.catch(err=>console.error('[moor UI Maker]',err));
 /* v30.4 REMOVED: legacy server-side search-suggestions rendered a second,
    conflicting suggestion dropdown over the new UI's home search (served-only
    code path — invisible to file:// testing). The workspace UI owns suggestions
    now; LEGACY_BLOCKED above also refuses it if anything requests it again. */
-loadDual('moor-shell.js','colony-shell.js','COLONY shell')
+loadDual('moor-shell.js','colony-shell.js','moor shell')
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@eeac436da2ba9959709c27210fb730e50941c940/releases/30.1.0/update/colony-request-capture.js','City request capture'))
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@929be65b80317f5ae49560e0ef15a4a9aafafe80/releases/31.0.0/update/colony-mgg.js','MOOR Generator Generator'))
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@ecb769b6875d594679833e5debce93a65c690531/releases/31.1.0/update/colony-renderer-tournament.js','Renderer Tournament'))
@@ -1081,7 +1195,7 @@ loadDual('moor-shell.js','colony-shell.js','COLONY shell')
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@fb1f3fa664846604cba20c6f318ca002786799c1/releases/32.0.0/update/colony-renderer-pulls.js','Renderer Pulls'))
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@705efc730d9163c9c21e7f67d18721e7f46e72b9/releases/32.1.4/update/renderer-pulls-play-ux.js','Renderer Pulls play UX'))
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@3803bf2f4b0bb18c2284fab88a4172ef43056608/releases/32.1.3/update/pulse-glass-pulls-bridge.js','Pulse Glass readiness bridge'))
-.catch(err=>console.error('[COLONY 32.2.0]',err));
+.catch(err=>console.error('[moor 32.2.0]',err));
 
 // 32.2.0 permanent bootstrap: stable updates install automatically during startup.
 // The 120s startup window avoids interrupting a long-running session when the
@@ -1100,7 +1214,7 @@ window.addEventListener('colony-update-status',event=>{
   setTimeout(()=>{
     Promise.resolve(window.COLONYUpdater.apply()).catch(err=>{
       autoApplying=false;
-      console.error('[COLONY auto update]',err);
+      console.error('[moor auto update]',err);
     });
   },900);
 });
@@ -1299,6 +1413,8 @@ let actions = [];
 let recentIds = loadRecent();
 let prevFocus = null;
 let root = null, input = null, list = null;
+/* workspace switching swaps the recents key underneath the palette; this lets it re-read. */
+window.__moorPaletteRecentsReload=function(){try{recentIds=loadRecent()}catch(e){}};
 
 /* ---------- rendering ---------- */
 
@@ -1469,9 +1585,9 @@ function choose(s) {
   if (row.kind === 'app') {
     recentIds = [row.id, ...recentIds.filter(id => id !== row.id)];
     saveRecent(recentIds);
-    try { launchApp(row); } catch (err) { console.error('[colony-palette] launch failed', err); }
+    try { launchApp(row); } catch (err) { console.error('[moor-palette] launch failed', err); }
   } else {
-    try { row.run(); } catch (err) { console.error('[colony-palette] command failed', err); }
+    try { row.run(); } catch (err) { console.error('[moor-palette] command failed', err); }
   }
   close();
 }
@@ -1551,10 +1667,10 @@ window.__colonyPalette = {
 
 <script>
 /* ===== inlined: subsystem:production/colony-production.js ===== */
-/* Additive COLONY runtime extension. Existing folders, City and UI Maker stay owned by COLONY. */
+/* Additive moor runtime extension. Existing folders, City and UI Maker stay owned by the local runtime. */
 (()=>{
   'use strict';
-  if(window.COLONYProduction)return;
+  if(window.moorProduction)return;
   const SCRIPT=document.currentScript;
   const BASE=new URL('http://127.0.0.1:39501/production/');
   const SERVICE='http://127.0.0.1:39520';
@@ -1575,17 +1691,19 @@ window.__colonyPalette = {
   ];
   let settings={pinned:['source','studio','environment'],hidden:[]};
   try{const saved=JSON.parse(window.__moorKV.get(localStorage,PREF_OLD,PREF)||'null');if(saved&&Array.isArray(saved.pinned)&&Array.isArray(saved.hidden))settings={pinned:saved.pinned.filter(id=>catalogue.some(a=>a.id===id)),hidden:saved.hidden.filter(id=>catalogue.some(a=>a.id===id))};}catch{}
+  /* workspace switching swaps the drawer-prefs key underneath this module; re-read on demand. */
+  window.__moorDrawerPrefsReload=function(){try{const saved=JSON.parse(window.__moorKV.get(localStorage,PREF_OLD,PREF)||'null');if(saved&&Array.isArray(saved.pinned)&&Array.isArray(saved.hidden))settings={pinned:saved.pinned.filter(id=>catalogue.some(a=>a.id===id)),hidden:saved.hidden.filter(id=>catalogue.some(a=>a.id===id))};}catch{}};
   let production=null,frame=null,drawer=null,dirty=false,lastFocus=null,uiPromise=null,requestedView='home';
   function element(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;}
   function button(text,action,cls){const b=element('button',text,cls);b.type='button';b.onclick=action;return b;}
   function persist(){try{window.__moorKV.set(localStorage,PREF_OLD,PREF,JSON.stringify(settings));}catch{showNotice('Drawer preferences could not be saved in this browser.');}}
-  function showNotice(text){const ui=window.COLONYUI||document.__COLONYUI;if(ui)ui.notify(text);else document.getElementById('colonyProductionStatus').textContent=text;}
+  function showNotice(text){const ui=window.COLONYUI||document.__COLONYUI;if(ui)ui.notify(text);else document.getElementById('moorProductionStatus').textContent=text;}
   async function ui(){
     if(window.COLONYUI||document.__COLONYUI)return window.COLONYUI||document.__COLONYUI;
-    if(!uiPromise)uiPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL('../update/colony-ui-system.js',BASE);s.onload=()=>{const found=window.COLONYUI||document.__COLONYUI;if(found)resolve(found);else reject(Error('moor window system is unavailable.'));};s.onerror=()=>reject(Error('moor window system could not load.'));document.head.append(s);}).catch(e=>{uiPromise=null;throw e;});
+    if(!uiPromise)uiPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL('../update/moor-ui-system.js',BASE);s.onload=()=>{const found=window.COLONYUI||document.__COLONYUI;if(found)resolve(found);else reject(Error('moor window system is unavailable.'));};s.onerror=()=>reject(Error('moor window system could not load.'));document.head.append(s);}).catch(e=>{uiPromise=null;throw e;});
     return uiPromise;
   }
-  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('colony-production.css',BASE);document.head.append(css);
+  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('moor-production.css',BASE);document.head.append(css);
   function focusables(node){return [...node.querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&!n.hidden);}
   function closeDrawer(){if(!drawer)return;drawer.remove();drawer=null;lastFocus?.focus();}
   function openDrawer(){
@@ -1647,7 +1765,7 @@ window.__colonyPalette = {
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
   // One stable launcher is available even while the existing search shell loads.
   const launch=element('nav',null,'cp-launch');launch.setAttribute('aria-label','moor production tools');launch.append(button('Apps',openDrawer),button('Production',()=>void open('home'),'cp-primary'));
-  const status=element('span');status.id='colonyProductionStatus';status.setAttribute('role','status');launch.append(status);document.body.append(launch);
+  const status=element('span');status.id='moorProductionStatus';status.setAttribute('role','status');launch.append(status);document.body.append(launch);
   function search(){
     if(!document?.body)return;
     const input=document.querySelector('#cb .cbin'),results=document.querySelector('#cb .cbres');if(!input||!results)return;
@@ -1661,7 +1779,7 @@ window.__colonyPalette = {
     for(const app of matches){const b=button('',()=>{input.value='';results.classList.remove('on');results.replaceChildren();void open(app.id);},'cbr');const copy=element('span');copy.append(element('b',app.name),element('small',app.description));b.append(copy,element('i','APP'));b.onmousedown=e=>e.preventDefault();list.append(b);}results.classList.add('on');
   }
   let queued=false;const searchObserver=new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;search();});});searchObserver.observe(document.body,{childList:true,subtree:true});window.addEventListener('pagehide',()=>searchObserver.disconnect());
-  window.COLONYProduction=Object.freeze({version:'0.3.0',apps:catalogue.map(a=>({...a})),open,openDrawer});
+  window.moorProduction=Object.freeze({version:'0.3.0',apps:catalogue.map(a=>({...a})),open,openDrawer});
 })();
 
 </script>
@@ -1674,7 +1792,8 @@ window.__colonyData.aquarium = {"docs": {"overview": "# Aquarium — Project Ove
 
 <script>
 /* ===== inlined: ui:workspace ===== */
-/* COLONY workspace UI v30 — view logic (mockup direction). Planning UI only. */
+/* moor workspace UI — view logic. Workspaces are real: localStorage-backed,
+   per-workspace home state (recents + drawer pins). */
 (function(){
 'use strict';
 var AQ=window.__colonyData.aquarium;
@@ -1752,51 +1871,118 @@ $$('#newMenu button').forEach(function(b){b.addEventListener('click',function(){
   if(n==='project')go('projects');else if(n==='workspace')go('workspaces');else if(n==='app')go('apps');
   else toast('Pick a project first, then add a folder.');
 })});
-/* ---------- projects: MOOR City folders/files ---------- */
-var FOLDERS=[
- ['Core',18,'#7fb2e5'],['Worlds',9,'#7fd6c2'],['Assets',24,'#e5b87f'],['Systems',14,'#b79fe5'],
- ['UI',10,'#e58bb1'],['Data',11,'#7fb2e5'],['Maps',9,'#9fe07f'],['Characters',8,'#e58bb1'],
- ['Weapons',14,'#e5b87f'],['Dungeons',6,'#b79fe5'],['Testing',5,'#e58bb1'],['Builds',11,'#7fd6c2']
-];
-var FILES=[
- ['spawn_v2.gltf','3.4 MB','img','🌆'],['world_gen.js','12 KB','code','📄'],
- ['city_concept.png','1.2 MB','img','🌁'],['readme.md','3 KB','code','📄'],['todos.txt','1 KB','code','📄']
-];
-var fg=$('#folderGrid');
-FOLDERS.forEach(function(f){
-  var d=document.createElement('div');d.className='folder';
-  d.innerHTML='<div class="fi" style="color:'+f[2]+'">📁</div><b>'+esc(f[0])+'</b><small>'+f[1]+' items</small>';
-  d.addEventListener('click',function(){showDetail({name:f[0],kind:'Folder',desc:'Inside the MOOR City project.',items:f[1],size:'—',mod:'Today',path:'…/Projects/MOOR City/'+f[0]})});
-  fg.appendChild(d);
-});
-var flg=$('#fileGrid');
-FILES.forEach(function(f){
-  var d=document.createElement('div');d.className='filecard';
-  d.innerHTML='<div class="thumb'+(f[2]==='img'?' img':'')+'">'+f[3]+'</div><b>'+esc(f[0])+'</b><small>'+esc(f[1])+'</small>';
-  flg.appendChild(d);
-});
-function showDetail(d){
-  $('#projDetail').innerHTML=
-   '<div class="di">📁</div><h3>'+esc(d.name)+'</h3><div class="kind">'+esc(d.kind)+'</div>'+
-   '<div class="desc">'+esc(d.desc)+'</div>'+
-   '<div class="kv"><span>Items</span><span>'+esc(d.items)+'</span></div>'+
-   '<div class="kv"><span>Size</span><span>'+esc(d.size)+'</span></div>'+
-   '<div class="kv"><span>Modified</span><span>'+esc(d.mod)+'</span></div>'+
-   '<div class="kv"><span>Path</span><span>'+esc(d.path)+'</span></div>'+
-   '<div class="dbtns"><button class="btn primary" data-act="open">Open</button>'+
-   '<button class="btn" data-act="share">Share</button>'+
-   '<button class="btn" data-act="pin">Pin to Home</button>'+
-   '<button class="btn" data-act="fs">Folder Settings</button></div>';
-  $$('#projDetail [data-act]').forEach(function(b){b.addEventListener('click',function(){toast(b.textContent+' — not wired up yet.')})});
+/* ---------- projects: real folders from connected Continuity sources ----------
+   Reads the local node's /__continuity/status + /__continuity/list endpoints
+   (verified in START-MOOR.ps1). No invented data: without a reachable node or
+   connected folders, this shows an honest empty state. */
+function projFmtSize(bytes){
+  if(bytes===null||bytes===undefined)return '\u2014';
+  var b=+bytes;if(!(b>=0))return '\u2014';
+  if(b<1024)return b+' B';
+  if(b<1048576)return (b/1024).toFixed(1)+' KB';
+  if(b<1073741824)return (b/1048576).toFixed(1)+' MB';
+  return (b/1073741824).toFixed(2)+' GB';
 }
-var MOOR_DETAIL={name:'MOOR City',kind:'Project Folder',desc:'A persistent world. Built by you.',items:'106',size:'4.8 GB',mod:'Today, 12:42',path:'…/Projects/MOOR City'};
-var AQ_DETAIL={name:'Aquarium',kind:'Project Folder',desc:'A living reef, planned down to the last scale.',items:'14',size:'71 KB',mod:'Today',path:'…/Projects/Aquarium'};
+function projFmtDate(iso){
+  try{var d=new Date(iso);return isNaN(d)?'\u2014':d.toLocaleString()}catch(e){return '\u2014'}
+}
+var projSourceId=null,projPath='';
+function projSetCrumb(parts){
+  var c=$('#crumbProj');if(c)c.textContent='Folders'+(parts.length?' \u203a '+parts.join(' \u203a '):'');
+}
+async function projFetch(url){
+  var r=await fetch(url,{cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function projEmpty(reason){
+  var host=$('#moorProj');if(!host)return;
+  projSetCrumb([]);
+  host.innerHTML='';
+  var d=document.createElement('div');d.className='proj-empty';
+  d.innerHTML='<div style="font-size:34px;margin-bottom:10px">\u25a4</div><b>No project folders connected yet.</b>'+
+    '<p>'+esc(reason||'Projects appear here when you connect a folder in Continuity \u2192 Sources. The listing reads the real folders from your local node \u2014 nothing is made up.')+'</p>';
+  var b=document.createElement('button');b.className='btn primary';b.textContent='Open Continuity';
+  b.addEventListener('click',function(){var c=window.moorContinuity||window.COLONYContinuity;if(c&&c.open)c.open('sources');else toast('Continuity is still loading\u2026')});
+  d.appendChild(b);host.appendChild(d);
+  var det=$('#projDetail');
+  if(det)det.innerHTML='<div class="di">\u25a4</div><h3>Projects</h3><div class="kind">Real folders only</div><div class="desc">Connect a folder in Continuity \u2192 Sources and browse it here.</div>';
+}
+async function drawProjects(){
+  var host=$('#moorProj');if(!host)return;
+  host.innerHTML='<div class="proj-empty"><p>Loading connected folders\u2026</p></div>';
+  var status=null;
+  try{status=await projFetch('/__continuity/status')}catch(e){status=null}
+  var sources=((status&&status.sources)||[]).filter(function(s){return s&&(s.kind==='local'||s.path)&&s.id});
+  if(!sources.length){projEmpty(status?'No local folders are connected on this PC yet.':'Could not reach the local node. If moor is running, connect a folder in Continuity \u2192 Sources.');return}
+  if(!projSourceId||!sources.some(function(s){return s.id===projSourceId}))projSourceId=sources[0].id;
+  projPath='';
+  projRenderSources(sources);
+  await projRenderList();
+}
+function projRenderSources(sources){
+  var host=$('#moorProj');if(!host)return;
+  host.innerHTML='';
+  var bar=document.createElement('div');bar.className='proj-sources';
+  sources.forEach(function(s){
+    var b=document.createElement('button');
+    b.className='proj-src'+(s.id===projSourceId?' on':'');
+    b.textContent=s.label||s.path||s.id;
+    b.title=s.path||'';
+    b.addEventListener('click',function(){projSourceId=s.id;projPath='';projRenderSources(sources);projRenderList()});
+    bar.appendChild(b);
+  });
+  host.appendChild(bar);
+  var list=document.createElement('div');list.id='projList';list.className='folder-grid';host.appendChild(list);
+}
+async function projRenderList(){
+  var list=$('#projList');if(!list)return;
+  list.innerHTML='<div class="proj-empty"><p>Loading\u2026</p></div>';
+  var items=null;
+  try{items=await projFetch('/__continuity/list?source='+encodeURIComponent(projSourceId)+'&path='+encodeURIComponent(projPath))}catch(e){items=null}
+  list.innerHTML='';
+  var crumbs=projPath?projPath.split('/').filter(Boolean):[];
+  projSetCrumb(crumbs);
+  if(!items){
+    var err=document.createElement('div');err.className='proj-empty';err.innerHTML='<p>Could not list this folder.</p>';list.appendChild(err);return;
+  }
+  if(crumbs.length){
+    var up=document.createElement('button');up.className='folder up';
+    up.innerHTML='<div class="fi">\u2b06</div><b>Up</b><small>'+esc(crumbs.slice(0,-1).join('/')||'root')+'</small>';
+    up.addEventListener('click',function(){projPath=crumbs.slice(0,-1).join('/');projRenderList()});
+    list.appendChild(up);
+  }
+  if(!items.length){
+    var em=document.createElement('div');em.className='proj-empty';em.innerHTML='<p>This folder is empty.</p>';list.appendChild(em);return;
+  }
+  items.forEach(function(it){
+    if(it.kind==='folder'){
+      var f=document.createElement('button');f.className='folder';
+      f.innerHTML='<div class="fi" style="color:#7fb2e5">📁</div><b>'+esc(it.name)+'</b><small>folder</small>';
+      f.addEventListener('click',function(){projPath=projPath?projPath+'/'+it.name:it.name;projRenderList()});
+      list.appendChild(f);
+    }else{
+      var c=document.createElement('button');c.className='filecard';
+      c.innerHTML='<div class="thumb">📄</div><b>'+esc(it.name)+'</b><small>'+esc(projFmtSize(it.bytes))+'</small>';
+      c.addEventListener('click',function(){projShowDetail(it)});
+      list.appendChild(c);
+    }
+  });
+}
+function projShowDetail(it){
+  var det=$('#projDetail');if(!det)return;
+  det.innerHTML=
+   '<div class="di">'+(it.kind==='folder'?'📁':'📄')+'</div><h3>'+esc(it.name)+'</h3><div class="kind">'+esc(it.kind==='folder'?'Folder':'File')+'</div>'+
+   '<div class="kv"><span>Size</span><span>'+esc(projFmtSize(it.bytes))+'</span></div>'+
+   '<div class="kv"><span>Modified</span><span>'+esc(projFmtDate(it.modifiedAt))+'</span></div>'+
+   '<div class="kv"><span>Path</span><span>'+esc(it.path||'')+'</span></div>';
+}
 /* ---------- project switch ---------- */
-function showMoor(){$('#moorProj').hidden=false;$('#aqProj').hidden=true;$('#swMoor').classList.add('on');$('#swAq').classList.remove('on');$('#crumbProj').textContent='MOOR City';showDetail(MOOR_DETAIL)}
-function showAq(){$('#moorProj').hidden=true;$('#aqProj').hidden=false;$('#swMoor').classList.remove('on');$('#swAq').classList.add('on');$('#crumbProj').textContent='Aquarium';showDetail(AQ_DETAIL);if(!aqBuilt){buildAq();aqBuilt=true}}
+function showMoor(){$('#moorProj').hidden=false;$('#aqProj').hidden=true;$('#swMoor').classList.add('on');$('#swAq').classList.remove('on')}
+function showAq(){$('#moorProj').hidden=true;$('#aqProj').hidden=false;$('#swMoor').classList.remove('on');$('#swAq').classList.add('on');if(!aqBuilt){buildAq();aqBuilt=true}}
 $('#swMoor').addEventListener('click',showMoor);
 $('#swAq').addEventListener('click',showAq);
-showDetail(MOOR_DETAIL);
+drawProjects();
 /* ---------- tiny markdown renderer ---------- */
 function md(src){
   function inline(s){return esc(s)
@@ -1887,16 +2073,119 @@ function buildAq(){
   $$('#aqSide button').forEach(function(b){b.addEventListener('click',function(){showAqDoc(b.dataset.k)})});
   showAqDoc('overview');
 }
-/* ---------- workspaces ---------- */
-var WORKSPACES=[
- ['MOOR City Dev','3 windows · 2 apps',['pinned','recent'],1],['Render Foundry','4 windows · 3 apps',['recent'],0],
- ['Obsidian','2 windows · 1 app',['personal'],0],['VS Code','3 windows · 2 apps',['recent'],0],
- ['Research','5 windows · 4 apps',['personal'],0],['Assets','3 windows · 3 apps',['shared'],0],
- ['Media Edit','4 windows · 3 apps',['personal'],0],['Personal','2 windows · 2 apps',['personal'],0],
- ['AI Lab','4 windows · 4 apps',['shared'],0],['Notes','2 windows · 1 app',['personal'],0],
- ['Clients','3 windows · 3 apps',['shared'],0]
-];
+/* ---------- workspaces (real: localStorage-backed, per-workspace home state) ----------
+   Each workspace keeps its own copy of the home's mutable state: recent
+   searches (command-palette recents) and production-drawer pins/hides.
+   Switching writes the target workspace's state into the live keys so the
+   home Recent list and the drawer visibly change. */
+var WS_KEY='moor.workspaces.v1',WS_ACTIVE='moor.workspace.active.v1';
+var WS_RECENTS='moor.command-palette.recents.v1',WS_RECENTS_OLD='colony.command-palette.recents.v1';
+var WS_DRAWER='moor.production.drawer.v1',WS_DRAWER_OLD='colony.production.drawer.v1';
 var wsGrid=$('#wsGrid'),wsF='all',wsQ='';
+function wsLoad(){try{var a=JSON.parse(localStorage.getItem(WS_KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+function wsSave(list){try{localStorage.setItem(WS_KEY,JSON.stringify(list))}catch(e){}}
+function wsActiveId(){try{return localStorage.getItem(WS_ACTIVE)||null}catch(e){return null}}
+function wsSetActive(id){try{localStorage.setItem(WS_ACTIVE,id)}catch(e){}}
+function wsCaptureState(){
+  var recents=[],drawer=null;
+  try{recents=JSON.parse(window.__moorKV.get(localStorage,WS_RECENTS_OLD,WS_RECENTS)||'[]')}catch(e){recents=[]}
+  try{drawer=JSON.parse(window.__moorKV.get(localStorage,WS_DRAWER_OLD,WS_DRAWER)||'null')}catch(e){drawer=null}
+  return {recents:Array.isArray(recents)?recents:[],drawer:drawer};
+}
+function wsApplyState(st){
+  st=st||{};
+  try{window.__moorKV.set(localStorage,WS_RECENTS_OLD,WS_RECENTS,JSON.stringify(st.recents||[]))}catch(e){}
+  try{window.__moorKV.set(localStorage,WS_DRAWER_OLD,WS_DRAWER,JSON.stringify(st.drawer||{pinned:[],hidden:[]}))}catch(e){}
+  if(window.__moorPaletteRecentsReload)try{window.__moorPaletteRecentsReload()}catch(e){}
+  if(window.__moorDrawerPrefsReload)try{window.__moorDrawerPrefsReload()}catch(e){}
+  wsRenderRecents(st.recents||[]);
+}
+function wsRenderRecents(recents){
+  var card=$('#recentCard');if(!card)return;
+  card.innerHTML='<div class="recent-title">Recent</div>';
+  var list=(recents||[]).filter(function(q){return typeof q==='string'}).slice(0,8);
+  if(!list.length){var d=document.createElement('div');d.style.cssText='font-size:12px;color:var(--muted);padding:10px 2px';d.textContent='No recent searches in this workspace yet.';card.appendChild(d);return}
+  list.forEach(function(q){
+    var b=document.createElement('button');b.className='recent-row';b.dataset.q=q;
+    b.innerHTML='<span><b>'+esc(q)+'</b><small>Recent search</small></span><i>SUGGESTION</i>';
+    b.addEventListener('click',function(){
+      var gin=$('#gin');if(gin)gin.value=q;
+      var inp=document.querySelector('#cb .cbin');
+      if(inp){inp.value=q;try{inp.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
+    });
+    card.appendChild(b);
+  });
+}
+function wsNewId(){return 'ws-'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36)}
+function wsEnsure(){
+  var list=wsLoad();
+  if(!list.length){
+    var w={id:wsNewId(),name:'Main',createdAt:Date.now(),lastUsed:Date.now(),pinned:true,tag:'personal',state:wsCaptureState()};
+    list.push(w);wsSave(list);
+  }
+  if(!wsActiveId()||!list.some(function(w){return w.id===wsActiveId()}))wsSetActive(list[0].id);
+  return list;
+}
+function wsSwitch(id){
+  var list=wsLoad();
+  var target=null;for(var i=0;i<list.length;i++)if(list[i].id===id)target=list[i];
+  if(!target)return;
+  var cur=wsActiveId();
+  if(cur&&cur!==id){
+    for(var j=0;j<list.length;j++)if(list[j].id===cur){list[j].state=wsCaptureState();list[j].lastUsed=Date.now()}
+  }
+  wsSetActive(id);target.lastUsed=Date.now();wsSave(list);
+  wsApplyState(target.state);
+  drawWs();go('home');
+  toast('Switched to '+target.name);
+}
+function wsCreate(){
+  var name=null;
+  try{name=window.prompt('Name the new workspace:','Workspace '+(wsLoad().length+1))}catch(e){}
+  if(name===null)return;
+  name=String(name).trim()||('Workspace '+(wsLoad().length+1));
+  var list=wsEnsure();
+  var w={id:wsNewId(),name:name,createdAt:Date.now(),lastUsed:Date.now(),pinned:false,tag:'personal',state:wsCaptureState()};
+  list.push(w);wsSave(list);wsSetActive(w.id);
+  drawWs();
+  toast('Workspace "'+name+'" created');
+}
+function wsRename(id,ev){
+  if(ev)ev.stopPropagation();
+  var list=wsLoad(),w=null;for(var i=0;i<list.length;i++)if(list[i].id===id)w=list[i];
+  if(!w)return;
+  var name=null;
+  try{name=window.prompt('Rename workspace:',w.name)}catch(e){}
+  if(name===null)return;
+  name=String(name).trim();if(!name)return;
+  w.name=name;wsSave(list);drawWs();
+}
+function wsDelete(id,ev){
+  if(ev)ev.stopPropagation();
+  var list=wsLoad(),ix=-1;for(var i=0;i<list.length;i++)if(list[i].id===id)ix=i;
+  if(ix<0)return;
+  var name=list[ix].name;
+  var ok=false;
+  try{ok=window.confirm('Delete workspace "'+name+'"? Its saved home state goes with it.')}catch(e){}
+  if(!ok)return;
+  var wasActive=wsActiveId()===id;
+  list.splice(ix,1);
+  if(wasActive){
+    if(!list.length){
+      var w={id:wsNewId(),name:'Main',createdAt:Date.now(),lastUsed:Date.now(),pinned:true,tag:'personal',state:wsCaptureState()};
+      list.push(w);
+    }
+    wsSetActive(list[0].id);list[0].lastUsed=Date.now();
+    wsApplyState(list[0].state);
+  }
+  wsSave(list);drawWs();go('home');
+  toast('Workspace "'+name+'" deleted');
+}
+function wsTogglePin(id,ev){
+  if(ev)ev.stopPropagation();
+  var list=wsLoad();for(var i=0;i<list.length;i++)if(list[i].id===id)list[i].pinned=!list[i].pinned;
+  wsSave(list);drawWs();
+}
 function wsThumb(seed){
   var wins='',x=8;
   for(var i=0;i<3;i++){var w=40+((seed*37+i*53)%60),h=30+((seed*53+i*29)%40);
@@ -1904,53 +2193,86 @@ function wsThumb(seed){
   return '<div class="ws-thumb">'+wins+'</div>';
 }
 function drawWs(){
+  var list=wsEnsure();
+  var active=wsActiveId();
   wsGrid.innerHTML='';
-  WORKSPACES.forEach(function(w,ix){
-    if(wsF!=='all'&&w[2].indexOf(wsF)<0)return;
-    if(wsQ&&w[0].toLowerCase().indexOf(wsQ)<0)return;
-    var b=document.createElement('button');b.className='ws-card';
-    b.innerHTML=wsThumb(ix+3)+'<div class="ws-meta"><span><b>'+(w[3]?'<span class="star">★ </span>':'')+esc(w[0])+'</b><small>'+esc(w[1])+'</small></span><span style="color:var(--faint)">…</span></div>';
-    b.addEventListener('click',function(){toast('Workspace switching is not wired up yet.')});
+  var shown=list.filter(function(w){
+    if(wsQ&&w.name.toLowerCase().indexOf(wsQ)<0)return false;
+    if(wsF==='pinned')return !!w.pinned;
+    if(wsF==='personal'||wsF==='shared')return w.tag===wsF;
+    return true;
+  });
+  if(wsF==='recent')shown=shown.slice().sort(function(a,b){return (b.lastUsed||0)-(a.lastUsed||0)});
+  shown.forEach(function(w,ix){
+    var nRec=(w.state&&w.state.recents||[]).length;
+    var nPin=(w.state&&w.state.drawer&&w.state.drawer.pinned||[]).length;
+    var b=document.createElement('div');b.className='ws-card';b.setAttribute('role','button');b.tabIndex=0;
+    b.innerHTML=wsThumb(ix+3)+'<div class="ws-meta"><span><b>'+(w.pinned?'<span class="star">★ </span>':'')+esc(w.name)+(w.id===active?' <span class="star">●</span>':'')+'</b><small>'+nRec+' recent · '+nPin+' pinned apps</small></span></div>'+
+      '<div class="ws-acts"><button type="button" data-wact="pin" title="'+(w.pinned?'Unpin':'Pin')+'">'+(w.pinned?'★':'☆')+'</button><button type="button" data-wact="rename" title="Rename">✎</button><button type="button" data-wact="del" title="Delete">🗑</button></div>';
+    b.addEventListener('click',function(){if(w.id!==active)wsSwitch(w.id);else go('home')});
+    b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();if(w.id!==active)wsSwitch(w.id);else go('home')}});
+    b.querySelector('[data-wact="pin"]').addEventListener('click',function(e){wsTogglePin(w.id,e)});
+    b.querySelector('[data-wact="rename"]').addEventListener('click',function(e){wsRename(w.id,e)});
+    b.querySelector('[data-wact="del"]').addEventListener('click',function(e){wsDelete(w.id,e)});
     wsGrid.appendChild(b);
   });
-  var nb=document.createElement('button');nb.className='ws-new';nb.innerHTML='<span style="font-size:26px">+</span><span>New Workspace<br><small style="color:var(--faint)">From template or current layout</small></span>';
-  nb.addEventListener('click',function(){toast('Workspace templates are not wired up yet.')});
+  if(!shown.length){
+    var em=document.createElement('div');em.style.cssText='grid-column:1/-1;color:var(--muted);font-size:13px;padding:18px';em.textContent='No workspaces match.';wsGrid.appendChild(em);
+  }
+  var nb=document.createElement('button');nb.className='ws-new';nb.innerHTML='<span style="font-size:26px">+</span><span>New Workspace<br><small style="color:var(--faint)">Captures your current layout</small></span>';
+  nb.addEventListener('click',wsCreate);
   wsGrid.appendChild(nb);
 }
 $$('#wsTabs button').forEach(function(b){b.addEventListener('click',function(){$$('#wsTabs button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');wsF=b.dataset.f;drawWs()})});
 $('#wsSearch').addEventListener('input',function(e){wsQ=e.target.value.toLowerCase();drawWs()});
+var wsSaveBtn=$('#wsSaveBtn');if(wsSaveBtn)wsSaveBtn.addEventListener('click',wsCreate);
+(function(){var list=wsEnsure();var act=null;for(var i=0;i<list.length;i++)if(list[i].id===wsActiveId())act=list[i];if(act)wsRenderRecents((act.state||{}).recents||[]);})();
 drawWs();
 /* ---------- apps ---------- */
 var APPS=[
- ['Render Foundry','⬢','#7fd6c2','create'],['MOOR City','🎮','#e5b87f','worlds'],['cit','▮','#b79fe5','worlds'],
- ['moor','📁','#e58bb1','worlds'],['con','📁','#7fb2e5','worlds'],['Assets','⧉','#7fd6c2','worlds'],
- ['Scene Generator','✳','#9fe07f','create'],['Material Lab','◔','#b79fe5','create'],['Texture Tools','▦','#b79fe5','create'],
- ['Video Tools','▶','#e58bb1','media'],['Audio Lab','♫','#b79fe5','media'],['AI Assistant','✦','#7fb2e5','tools'],
- ['Browser','🌐','#7fb2e5','tools'],['Terminal','⌁','#9fe07f','dev'],['File Manager','📁','#e5c87f','tools'],
- ['Notes','📝','#e5c87f','tools'],['Settings','⚙','#93a197','dev']
+ ['MOOR City','🎮','#e5b87f','worlds',1],['Settings','⚙','#93a197','dev',1],
+ ['Render Foundry','⬢','#7fd6c2','create',0],['cit','▮','#b79fe5','worlds',0],
+ ['moor','📁','#e58bb1','worlds',0],['con','📁','#7fb2e5','worlds',0],['Assets','⧉','#7fd6c2','worlds',0],
+ ['Scene Generator','✳','#9fe07f','create',0],['Material Lab','◔','#b79fe5','create',0],['Texture Tools','▦','#b79fe5','create',0],
+ ['Video Tools','▶','#e58bb1','media',0],['Audio Lab','♫','#b79fe5','media',0],['AI Assistant','✦','#7fb2e5','tools',0],
+ ['Browser','🌐','#7fb2e5','tools',0],['Terminal','⌁','#9fe07f','dev',0],['File Manager','📁','#e5c87f','tools',0],
+ ['Notes','📝','#e5c87f','tools',0]
 ];
 var appGrid=$('#appGrid'),appF='all';
+function appTile(a,planned){
+  var d=planned?document.createElement('div'):document.createElement('button');
+  d.className='app'+(planned?' planned':'');
+  d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><b>'+esc(a[0])+'</b>'+(planned?'<span class="planned-tag">PLANNED</span>':'');
+  if(!planned)d.addEventListener('click',function(){openApp(a[0])});
+  else d.title=a[0]+' is planned — not built yet.';
+  return d;
+}
 function drawApps(){
   appGrid.innerHTML='';
-  APPS.forEach(function(a){
-    if(appF!=='all'&&a[3]!==appF)return;
-    var d=document.createElement('button');d.className='app';
-    d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><b>'+esc(a[0])+'</b>';
-    d.addEventListener('click',function(){openApp(a[0])});
-    appGrid.appendChild(d);
-  });
-  var add=document.createElement('button');add.className='app';
-  add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><b>Add App</b>';
-  add.addEventListener('click',function(){toast('App library is not wired up yet.')});
-  appGrid.appendChild(add);
+  var connected=APPS.filter(function(a){return a[4]&&(appF==='all'||a[3]===appF)});
+  var planned=APPS.filter(function(a){return !a[4]&&(appF==='all'||a[3]===appF)});
+  if(connected.length){
+    var h1=document.createElement('div');h1.className='app-sec';h1.textContent='Connected';appGrid.appendChild(h1);
+    connected.forEach(function(a){appGrid.appendChild(appTile(a,false))});
+  }
+  if(planned.length||appF==='all'){
+    var h2=document.createElement('div');h2.className='app-sec';h2.textContent='Planned';appGrid.appendChild(h2);
+    var note=document.createElement('div');note.className='app-note';
+    note.textContent='These apps are not built yet. They are placeholders for what is coming — nothing here is broken, there is just nothing to open.';
+    appGrid.appendChild(note);
+    planned.forEach(function(a){appGrid.appendChild(appTile(a,true))});
+    var add=document.createElement('div');add.className='app planned';
+    add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><b>Add App</b><span class="planned-tag">PLANNED</span>';
+    add.title='An app library is planned — not built yet.';
+    appGrid.appendChild(add);
+  }
 }
 function openApp(name){
   if(name==='MOOR City'){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank');return}
   if(name==='Settings'){go('settings');return}
-  toast(name+' is not connected yet.');
 }
 $$('#appTabs button').forEach(function(b){b.addEventListener('click',function(){
-  if(b.dataset.f==='add'){toast('Custom tabs are not wired up yet.');return}
+  if(b.dataset.f==='add'){toast('Custom tabs are planned — not available yet.');return}
   $$('#appTabs button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');appF=b.dataset.f;drawApps();
 })});
 drawApps();
@@ -2007,7 +2329,7 @@ function drawSettings(){
 $('#qaReset').addEventListener('click',function(){SET=JSON.parse(JSON.stringify(DEF));applySet();drawSettings();toast('Settings reset to default.')});
 $('#qaExport').addEventListener('click',function(){
   var blob=new Blob([JSON.stringify(SET,null,2)],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='colony-settings.json';document.body.appendChild(a);a.click();a.remove();
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='moor-settings.json';document.body.appendChild(a);a.click();a.remove();
 });
 $('#qaImport').addEventListener('click',function(){$('#qaFile').click()});
 $('#qaFile').addEventListener('change',function(e){
@@ -2025,11 +2347,11 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__COLONY_LIVE_VER='20260924-008';
+window.__MOOR_LIVE_VER='20260925-001';
 (function(){setInterval(function(){
-  fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
+  fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
-    .then(function(t){t=(t||'').trim();if(t&&t!==window.__COLONY_LIVE_VER){location.reload()}})
+    .then(function(t){t=(t||'').trim();if(t&&t!==window.__MOOR_LIVE_VER){location.reload()}})
     .catch(function(){});
 },90000)})();
 
