@@ -2430,6 +2430,17 @@ function openAppWindow(title,url){
   __mwinWins[title]=w;
   return w;
 }
+/* embedded apps (e.g. Render Studio in an in-app window) ask the moor shell to
+   open a URL as another in-app window instead of a new browser tab */
+window.addEventListener('message',function(e){
+  var d=e&&e.data;if(!d||d.type!=='moor-open-app')return;
+  /* trust boundary: only the Render Queue embed (same studio origins) may ask */
+  var okOrigin=/^https:\/\/bassseamoor\.github\.io$/.test(String(e.origin||''));
+  var url=String(d.url||'');
+  if(!okOrigin||!/^https:\/\/bassseamoor\.github\.io\/(render-queue|turtle-life-studio|rain-window-studio)\//.test(url))return;
+  var title=String(d.title||'Studio').slice(0,60)||'Studio';
+  try{openAppWindow(title,url)}catch(err){}
+});
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){var ks=Object.keys(__mwinWins);if(ks.length){var w=__mwinWins[ks[ks.length-1]];if(w&&w.parentNode)w.parentNode.removeChild(w);delete __mwinWins[ks[ks.length-1]]}}
 });
@@ -3140,7 +3151,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-022';
+window.__MOOR_LIVE_VER='20260925-023';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
