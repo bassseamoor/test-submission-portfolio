@@ -294,6 +294,19 @@ input[type=range]{accent-color:var(--accent);width:150px}
 #newMenu button:hover{background:rgba(255,255,255,.06)}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:9000;background:#141a15;color:#eef3ed;border:1px solid var(--border2);border-radius:10px;padding:10px 16px;font-size:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .kbd{font-size:10px;border:1px solid var(--border);border-radius:6px;padding:2px 7px;color:var(--muted)}
+/* ---- in-app windows (studio etc. open inside moor, not a new tab) ---- */
+.mwin{position:fixed;z-index:8000;background:var(--panel2);border:1px solid var(--border2);border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.55);backdrop-filter:blur(16px);display:flex;flex-direction:column;overflow:hidden;min-width:320px;min-height:220px}
+.mwin-bar{display:flex;align-items:center;gap:8px;padding:9px 10px 9px 14px;cursor:grab;user-select:none;border-bottom:1px solid var(--border);flex:0 0 auto}
+.mwin-bar:active{cursor:grabbing}
+.mwin-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+.mwin-title{font-size:13px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mwin-btns{display:flex;gap:6px}
+.mwin-btns button{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;width:26px;height:24px;font-size:12px;cursor:pointer;line-height:1}
+.mwin-btns button:hover{color:var(--text);border-color:var(--accent)}
+.mwin-body{flex:1;min-height:0;background:#0b0f0d}
+.mwin-body iframe{width:100%;height:100%;border:0;display:block;background:#0b0f0d}
+.mwin.max{left:calc(var(--rail-w) + 12px)!important;top:calc(var(--top-h) + 12px)!important;right:12px;bottom:12px;width:auto!important;height:auto!important}
+.mwin .mwin-resize{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;touch-action:none}
 /* ---- old-app glass style pass v30.3 ---- */
 .top{background:linear-gradient(180deg,rgba(8,11,9,.78),rgba(8,11,9,.55));backdrop-filter:blur(20px) saturate(1.12);-webkit-backdrop-filter:blur(20px) saturate(1.12);border-bottom:1px solid rgba(255,255,255,.07);box-shadow:0 8px 30px rgba(0,0,0,.35)}
 .recent-card,.rail,.ccp-panel,.panel{background:linear-gradient(180deg,rgba(23,28,25,.78),rgba(15,19,17,.72));backdrop-filter:blur(20px) saturate(1.12);-webkit-backdrop-filter:blur(20px) saturate(1.12);border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -2452,10 +2465,66 @@ function drawApps(){
     }
   }
 }
+/* ---------- in-app windows ---------- */
+var __mwinZ=8000,__mwinWins={};
+function openAppWindow(title,url){
+  if(__mwinWins[title]){var ex=__mwinWins[title];ex.style.zIndex=++__mwinZ;return ex}
+  var w=document.createElement('div');w.className='mwin';w.setAttribute('role','dialog');w.setAttribute('aria-label',title);
+  var vw=Math.max(document.documentElement.clientWidth,320),vh=Math.max(document.documentElement.clientHeight,240);
+  var ww=Math.min(1100,vw-60),wh=Math.min(720,vh-60);
+  w.style.width=ww+'px';w.style.height=wh+'px';
+  w.style.left=Math.round((vw-ww)/2)+'px';w.style.top=Math.round((vh-wh)/2)+'px';
+  w.style.zIndex=++__mwinZ;
+  var bar=document.createElement('div');bar.className='mwin-bar';
+  bar.innerHTML='<span class="mwin-dot"></span><span class="mwin-title"></span><span class="mwin-btns"><button data-a="max" title="Maximize / restore">⛶</button><button data-a="close" title="Close">✕</button></span>';
+  bar.querySelector('.mwin-title').textContent=title;
+  var body=document.createElement('div');body.className='mwin-body';
+  var f=document.createElement('iframe');f.src=url;f.title=title;f.setAttribute('allow','fullscreen');
+  body.appendChild(f);
+  var grip=document.createElement('div');grip.className='mwin-resize';
+  w.appendChild(bar);w.appendChild(body);w.appendChild(grip);
+  document.body.appendChild(w);
+  function close(){if(w.parentNode)w.parentNode.removeChild(w);delete __mwinWins[title]}
+  bar.querySelector('[data-a="close"]').addEventListener('click',function(e){e.stopPropagation();close()});
+  bar.querySelector('[data-a="max"]').addEventListener('click',function(e){e.stopPropagation();w.classList.toggle('max')});
+  w.addEventListener('pointerdown',function(){w.style.zIndex=++__mwinZ},{capture:true});
+  // drag by title bar
+  var sx,sy,sl,st;
+  bar.addEventListener('pointerdown',function(e){
+    if(e.target.closest('button')||w.classList.contains('max'))return;
+    sx=e.clientX;sy=e.clientY;sl=w.offsetLeft;st=w.offsetTop;bar.setPointerCapture(e.pointerId);
+    function mv(ev){w.style.left=Math.max(0,Math.min(vw-80,sl+ev.clientX-sx))+'px';w.style.top=Math.max(0,Math.min(vh-40,st+ev.clientY-sy))+'px'}
+    function up(){bar.removeEventListener('pointermove',mv);bar.removeEventListener('pointerup',up)}
+    bar.addEventListener('pointermove',mv);bar.addEventListener('pointerup',up);
+  });
+  // resize by corner grip
+  var rx,ry,rw,rh;
+  grip.addEventListener('pointerdown',function(e){
+    e.stopPropagation();e.preventDefault();
+    if(w.classList.contains('max'))return;
+    rx=e.clientX;ry=e.clientY;rw=w.offsetWidth;rh=w.offsetHeight;grip.setPointerCapture(e.pointerId);
+    function mv(ev){w.style.width=Math.max(320,rw+ev.clientX-rx)+'px';w.style.height=Math.max(220,rh+ev.clientY-ry)+'px'}
+    function up(){grip.removeEventListener('pointermove',mv);grip.removeEventListener('pointerup',up)}
+    grip.addEventListener('pointermove',mv);grip.addEventListener('pointerup',up);
+  });
+  __mwinWins[title]=w;
+  return w;
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){var ks=Object.keys(__mwinWins);if(ks.length){var w=__mwinWins[ks[ks.length-1]];if(w&&w.parentNode)w.parentNode.removeChild(w);delete __mwinWins[ks[ks.length-1]]}}
+});
+/* App URL registry: any app listed here opens INSIDE moor by default.
+   When someone makes an app, add its URL here and it opens in a moor window — no new tab. */
+var APP_URLS={
+  'Render Studio':'https://bassseamoor.github.io/render-queue/'
+};
 function openApp(name){
-  if(name==='MOOR City'){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank');return}
-  if(name==='Render Studio'){window.open('https://bassseamoor.github.io/render-queue/','_blank');return}
   if(name==='Settings'){go('settings');return}
+  var url=APP_URLS[name];
+  if(url){openAppWindow(name,url);return}
+  // MOOR City is served over http on localhost: an https page may not iframe it
+  // (mixed content), so it stays a new tab until that changes.
+  if(name==='MOOR City'){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank');return}
 }
 /* ---------- custom tabs ---------- */
 var BUILTIN_TABS=[['all','All'],['create','Create'],['tools','Tools'],['media','Media'],['dev','Dev']];
@@ -2919,7 +2988,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-011';
+window.__MOOR_LIVE_VER='20260925-012';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
