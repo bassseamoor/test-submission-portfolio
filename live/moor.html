@@ -308,6 +308,9 @@ input:focus,select:focus{border-color:var(--accent)}
 .ai-actions button:hover{border-color:var(--accent)}
 .ai-link{font-size:12px;color:var(--accent);text-decoration:none;margin-left:auto;white-space:nowrap}
 .ai-link:hover{text-decoration:underline}
+.ai-mrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ai-mrow span{font-size:11px;color:var(--muted);flex:0 0 auto}
+.ai-mrow select{flex:1;min-width:0;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-size:12px;font-family:inherit}
 .ai-rules{font-size:11px;color:var(--muted);padding:4px 0 6px;line-height:1.7}
 .set-row small{display:block;color:var(--muted);font-size:10px}
 .seg{display:flex;gap:8px}
@@ -2850,22 +2853,34 @@ function applySet(){
 /* ---------- AI & Agents: model + API connections ---------- */
 var AI_KEY='moor.ai.v1';
 var AI_PROVIDERS=[
- {id:'groq',name:'Groq',blurb:'Free tier · fast judgment calls',test:'https://api.groq.com/openai/v1/models',site:'https://console.groq.com'},
- {id:'google',name:'Google AI Studio',blurb:'Free tier · Gemini models',test:'https://generativelanguage.googleapis.com/v1beta/models?key=',keyInUrl:true,site:'https://aistudio.google.com/apikey'},
- {id:'openrouter',name:'OpenRouter',blurb:'Free models · many providers, one key',test:'https://openrouter.ai/api/v1/auth/key',site:'https://openrouter.ai/keys'},
- {id:'github',name:'GitHub Models',blurb:'Free with a GitHub account · use a fine-grained PAT',test:null,site:'https://github.com/settings/tokens'},
- {id:'mistral',name:'Mistral',blurb:'Free tier · La Plateforme',test:'https://api.mistral.ai/v1/models',site:'https://console.mistral.ai'},
- {id:'nvidia',name:'NVIDIA NIM',blurb:'Free credits · build.nvidia.com',test:'https://integrate.api.nvidia.com/v1/models',site:'https://build.nvidia.com'},
+ {id:'groq',name:'Groq',blurb:'Free tier · fast judgment calls',test:'https://api.groq.com/openai/v1/models',site:'https://console.groq.com',
+  models:['llama-3.3-70b-versatile','moonshotai/kimi-k2-instruct','openai/gpt-oss-120b','qwen/qwen3-32b','llama-3.1-8b-instant']},
+ {id:'google',name:'Google AI Studio',blurb:'Free tier · Gemini models',test:'https://generativelanguage.googleapis.com/v1beta/models?key=',keyInUrl:true,site:'https://aistudio.google.com/apikey',
+  models:['gemini-2.5-pro','gemini-2.5-flash','gemini-3.8-flash']},
+ {id:'openrouter',name:'OpenRouter',blurb:'Free models · many providers, one key',test:'https://openrouter.ai/api/v1/auth/key',site:'https://openrouter.ai/keys',
+  models:['z-ai/glm-5.3-flash','deepseek/deepseek-v4.1-flash','openai/gpt-5.6-luna','nvidia/nemotron-3-ultra-550b-a55b:free','google/gemini-3.8-flash','anthropic/claude-opus-5']},
+ {id:'github',name:'GitHub Models',blurb:'Free with a GitHub account · use a fine-grained PAT',test:null,site:'https://github.com/settings/tokens',
+  models:['openai/gpt-5','anthropic/claude-opus-4.6','meta/llama-4-maverick-17b-128e-instruct','deepseek/deepseek-v3-0324']},
+ {id:'mistral',name:'Mistral',blurb:'Free tier · La Plateforme',test:'https://api.mistral.ai/v1/models',site:'https://console.mistral.ai',
+  models:['mistral-large-latest','mistral-medium-latest','mistral-small-latest']},
+ {id:'nvidia',name:'NVIDIA NIM',blurb:'Free credits · build.nvidia.com',test:'https://integrate.api.nvidia.com/v1/models',site:'https://build.nvidia.com',
+  models:['deepseek-ai/deepseek-v4-flash-0731','moonshotai/kimi-k3','nvidia/nemotron-3-ultra-550b-a55b','openai/gpt-oss-120b','meta/llama-3.3-70b-instruct']},
  {id:'jev',name:'Jev',blurb:'TypeSafe · System One decisions, no text',test:'https://api.typesafe.ai/v1/systemone',testPost:true,judge:false,site:'https://typesafe.ai'},
- {id:'meta',name:'Meta',blurb:'Muse Spark 1.3/1.2/1.1 + Muse Image · dev.meta.ai',test:'https://api.meta.ai/v1/models',site:'https://dev.meta.ai'},
- {id:'cerebras',name:'Cerebras',blurb:'Free ~1M tokens/day · very fast',test:'https://api.cerebras.ai/v1/models',free:true,site:'https://cloud.cerebras.ai'},
- {id:'sambanova',name:'SambaNova',blurb:'Free tier · fast open models',test:'https://api.sambanova.ai/v1/models',free:true,site:'https://cloud.sambanova.ai'},
- {id:'zai',name:'Z.AI (GLM)',blurb:'Free GLM Flash tier',test:'https://api.z.ai/api/paas/v4/models',free:true,site:'https://z.ai/model-api'},
- {id:'cohere',name:'Cohere',blurb:'Free trial key · ~1k calls/mo',test:'https://api.cohere.com/v2/models',free:true,site:'https://dashboard.cohere.com'},
- {id:'huggingface',name:'Hugging Face',blurb:'Free inference with a free account',test:'https://huggingface.co/api/whoami-v2',free:true,site:'https://huggingface.co/settings/tokens'},
+ {id:'meta',name:'Meta',blurb:'Muse Spark 1.3/1.2/1.1 + Muse Image · dev.meta.ai',test:'https://api.meta.ai/v1/models',site:'https://dev.meta.ai',
+  models:['muse-spark-1.3','muse-spark-1.2','muse-image-1.0']},
+ {id:'cerebras',name:'Cerebras',blurb:'Free ~1M tokens/day · very fast',test:'https://api.cerebras.ai/v1/models',free:true,site:'https://cloud.cerebras.ai',
+  models:['llama-3.3-70b','qwen-3-32b','gpt-oss-120b']},
+ {id:'sambanova',name:'SambaNova',blurb:'Free tier · fast open models',test:'https://api.sambanova.ai/v1/models',free:true,site:'https://cloud.sambanova.ai',
+  models:['DeepSeek-V3-0324','Meta-Llama-3.3-70B-Instruct','Qwen3-32B','Llama-4-Maverick-17B-128E-Instruct']},
+ {id:'zai',name:'Z.AI (GLM)',blurb:'Free GLM Flash tier',test:'https://api.z.ai/api/paas/v4/models',free:true,site:'https://z.ai/model-api',
+  models:['glm-4.6','glm-4.5-flash','glm-4.5']},
+ {id:'cohere',name:'Cohere',blurb:'Free trial key · ~1k calls/mo',test:'https://api.cohere.com/v2/models',free:true,site:'https://dashboard.cohere.com',
+  models:['command-a-03-2025','command-r-plus-08-2024']},
+ {id:'huggingface',name:'Hugging Face',blurb:'Free inference with a free account',test:'https://huggingface.co/api/whoami-v2',free:true,site:'https://huggingface.co/settings/tokens',
+  models:['moonshotai/Kimi-K2-Instruct','deepseek-ai/DeepSeek-V3','meta-llama/Llama-3.3-70B-Instruct','Qwen/Qwen3-32B']},
  {id:'pollinations',name:'Pollinations',blurb:'100% free · no key needed',test:'https://text.pollinations.ai/models',free:true,nokey:true,site:'https://pollinations.ai',siteLabel:'Docs →'}
 ];
-var AI={ollama:'http://127.0.0.1:11434',keys:{},judge:'groq',verifier:'qwen3:8b'};
+var AI={ollama:'http://127.0.0.1:11434',keys:{},models:{},judge:'groq',verifier:'qwen3:8b'};
 function aiLoad(){try{var s=JSON.parse(localStorage.getItem(AI_KEY)||'null');if(s&&typeof s==='object')AI=Object.assign(AI,s)}catch(e){}}
 function aiSave(){try{localStorage.setItem(AI_KEY,JSON.stringify(AI))}catch(e){}}
 aiLoad();
@@ -2928,6 +2943,10 @@ function drawAISettings(){
          '<button class="ai-plus" data-expand="'+p.id+'" aria-label="Expand">+</button>'+
        '</div>'+
        '<div class="ai-panel">'+
+         (p.models?'<div class="ai-mrow"><span>Model</span><select data-m="'+p.id+'">'+p.models.map(function(m){
+            var cur=AI.models[p.id]||p.models[0];
+            return '<option value="'+esc(m)+'"'+(cur===m?' selected':'')+'>'+esc(m)+'</option>';
+          }).join('')+'</select></div>':'')+
          (p.nokey?'':'<input type="password" data-k="'+p.id+'" value="'+esc(AI.keys[p.id]||'')+'" placeholder="Paste key…" autocomplete="off" spellcheck="false">')+
          '<div class="ai-actions">'+
            (p.nokey?'':'<button data-save="'+p.id+'">Save</button>')+
@@ -2941,7 +2960,7 @@ function drawAISettings(){
   h+='<h4 style="margin:18px 0 4px;font-size:12px;letter-spacing:.08em;color:var(--muted)">ROUTING</h4>'+
      '<div class="ai-prov"><div class="ai-rules">Judgment + online &rarr; cloud &nbsp;·&nbsp; Private / offline / instant &rarr; local &nbsp;·&nbsp; Verifier scoring &rarr; always local</div>'+
      '<div class="set-row"><span>Judgment provider<small>Used when online and the call matters</small></span><span><select id="aiJudge">'+
-     AI_PROVIDERS.filter(function(p){return p.judge!==false}).map(function(p){return '<option value="'+p.id+'"'+(AI.judge===p.id?' selected':'')+'>'+esc(p.name)+'</option>'}).join('')+'</select></span></div>'+
+     AI_PROVIDERS.filter(function(p){return p.judge!==false}).map(function(p){var m=AI.models[p.id]||(p.models&&p.models[0])||'';return '<option value="'+p.id+'"'+(AI.judge===p.id?' selected':'')+'>'+esc(p.name+(m?' · '+m:''))+'</option>'}).join('')+'</select></span></div>'+
      '<div class="set-row"><span>Verifier model<small>Local model that scores the work</small></span><span><input id="aiVerifier" value="'+esc(AI.verifier)+'" spellcheck="false" autocomplete="off" style="max-width:170px"></span></div></div>';
   h+='<p style="font-size:11px;color:var(--muted);max-width:460px">Keys stay in this browser\u2019s local storage and are only ever sent to the provider you chose. Agent worker loops aren\u2019t built yet.</p>';
   setMain.innerHTML=h;
@@ -2964,8 +2983,14 @@ function drawAISettings(){
     $$('#setMain .ai-prov.open').forEach(function(c){c.classList.remove('open')});
     if(!wasOpen)card.classList.add('open');
   })});
-  $$('#setMain [data-test]').forEach(function(b){b.addEventListener('click',function(){
-    var id=b.getAttribute('data-test');
+  $$('#setMain [data-m]').forEach(function(s){s.addEventListener('change',function(){
+    var id=s.getAttribute('data-m');
+    AI.models[id]=s.value;aiSave();
+    var p=AI_PROVIDERS.filter(function(x){return x.id===id})[0];
+    var opt=setMain.querySelector('#aiJudge option[value="'+id+'"]');
+    if(opt&&p)opt.textContent=p.name+' · '+s.value;
+  })});
+  $$('#setMain [data-test]').forEach(function(b){b.addEventListener('click',function(){    var id=b.getAttribute('data-test');
     var p=AI_PROVIDERS.filter(function(x){return x.id===id})[0];
     aiTestProvider(p,b.closest('.ai-prov').querySelector('[data-msg]'));
   })});
@@ -3109,7 +3134,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-020';
+window.__MOOR_LIVE_VER='20260925-021';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
