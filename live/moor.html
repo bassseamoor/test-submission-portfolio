@@ -174,6 +174,12 @@ input:focus,select:focus{border-color:var(--accent)}
 .ws-acts button:hover{color:var(--text);border-color:var(--border2)}
 .ws-new{border-style:dashed;display:grid;place-items:center;min-height:170px;color:var(--muted);background:transparent;width:100%;border-radius:12px;border:1px dashed var(--border2);cursor:pointer;font-size:12px}
 .ws-new:hover{color:var(--text)}
+.ws-grid.list{grid-template-columns:1fr;gap:8px}
+.ws-grid.list .ws-card{display:flex;align-items:center;gap:14px;padding:10px 14px}
+.ws-grid.list .ws-thumb{width:120px;height:64px;flex:none;border-radius:10px}
+.ws-grid.list .ws-meta{flex:1;padding:0;min-width:0}
+.ws-grid.list .ws-acts{padding:0;flex:none}
+.ws-grid.list .ws-new{min-height:0;padding:14px;display:flex;gap:10px;place-items:center;justify-content:center}
 /* apps */
 .app-tabs{display:flex;gap:6px;padding:12px 20px 0;align-items:center;flex-wrap:wrap}
 .app-tabs button{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:9px;padding:7px 13px;font-size:12px;font-weight:650;cursor:pointer}
@@ -473,8 +479,8 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
         <div><h2>⧉ Workspaces</h2><p>Your saved environments.</p></div>
         <div class="sp"></div>
         <input type="search" id="wsSearch" placeholder="Search workspaces…" aria-label="Search workspaces" style="width:200px">
-        <button class="iconbtn on" title="Grid">▦</button>
-        <button class="iconbtn" title="List">☰</button>
+        <button class="iconbtn on" title="Grid" data-wview="grid">▦</button>
+        <button class="iconbtn" title="List" data-wview="list">☰</button>
         <button class="btn primary" id="wsSaveBtn">+ Save Current Layout</button>
         <button class="xbtn" data-go="home" title="Close">✕</button>
       </div>
@@ -2285,6 +2291,14 @@ function wsTogglePin(id,ev){
   var list=wsLoad();for(var i=0;i<list.length;i++)if(list[i].id===id)list[i].pinned=!list[i].pinned;
   wsSave(list);drawWs();
 }
+function wsAgo(ts){
+  if(!ts)return'never used';
+  var s=Math.floor((Date.now()-ts)/1000);if(s<60)return'just now';
+  var m=Math.floor(s/60);if(m<60)return m+'m ago';
+  var h=Math.floor(m/60);if(h<24)return h+'h ago';
+  var d=Math.floor(h/24);if(d<30)return d+'d ago';
+  try{return new Date(ts).toLocaleDateString()}catch(e){return''}
+}
 function wsThumb(seed){
   var wins='',x=8;
   for(var i=0;i<3;i++){var w=40+((seed*37+i*53)%60),h=30+((seed*53+i*29)%40);
@@ -2306,7 +2320,7 @@ function drawWs(){
     var nRec=(w.state&&w.state.recents||[]).length;
     var nPin=(w.state&&w.state.drawer&&w.state.drawer.pinned||[]).length;
     var b=document.createElement('div');b.className='ws-card';b.setAttribute('role','button');b.tabIndex=0;
-    b.innerHTML=wsThumb(ix+3)+'<div class="ws-meta"><span><b>'+(w.pinned?'<span class="star">★ </span>':'')+esc(w.name)+(w.id===active?' <span class="star">●</span>':'')+'</b><small>'+nRec+' recent · '+nPin+' pinned apps</small></span></div>'+
+    b.innerHTML=wsThumb(ix+3)+'<div class="ws-meta"><span><b>'+(w.pinned?'<span class="star">★ </span>':'')+esc(w.name)+(w.id===active?' <span class="star">●</span>':'')+'</b><small>'+nPin+' pinned · Updated '+wsAgo(w.lastUsed)+'</small></span></div>'+
       '<div class="ws-acts"><button type="button" data-wact="pin" title="'+(w.pinned?'Unpin':'Pin')+'">'+(w.pinned?'★':'☆')+'</button><button type="button" data-wact="rename" title="Rename">✎</button><button type="button" data-wact="del" title="Delete">🗑</button></div>';
     b.addEventListener('click',function(){if(w.id!==active)wsSwitch(w.id);else go('home')});
     b.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();if(w.id!==active)wsSwitch(w.id);else go('home')}});
@@ -2323,6 +2337,13 @@ function drawWs(){
   wsGrid.appendChild(nb);
 }
 $$('#wsTabs button').forEach(function(b){b.addEventListener('click',function(){$$('#wsTabs button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');wsF=b.dataset.f;drawWs()})});
+/* workspaces grid/list toggle */
+var wsView='grid';
+$$('#view-workspaces .panel-head [data-wview]').forEach(function(b){b.addEventListener('click',function(){
+  wsView=b.dataset.wview||'grid';
+  $$('#view-workspaces .panel-head [data-wview]').forEach(function(x){x.classList.toggle('on',x===b)});
+  wsGrid.classList.toggle('list',wsView==='list');
+})});
 $('#wsSearch').addEventListener('input',function(e){wsQ=e.target.value.toLowerCase();drawWs()});
 var wsSaveBtn=$('#wsSaveBtn');if(wsSaveBtn)wsSaveBtn.addEventListener('click',wsCreate);
 (function(){var list=wsEnsure();var act=null;for(var i=0;i<list.length;i++)if(list[i].id===wsActiveId())act=list[i];if(act)wsRenderRecents((act.state||{}).recents||[]);})();
@@ -2453,7 +2474,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-004';
+window.__MOOR_LIVE_VER='20260925-005';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
