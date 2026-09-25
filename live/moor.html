@@ -271,6 +271,7 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .panel,.ccp-panel{border-radius:var(--r-lg)}
 .recent-card{border-radius:var(--r-lg)}
 .ws-card,.app,.folder,.filecard,.aq-wrap,.tbl-wrap,#newMenu,.mini{border-radius:16px}
+body.sq .panel,body.sq .ws-card,body.sq .app,body.sq .folder,body.sq .filecard,body.sq .recent-card,body.sq #newMenu,body.sq .mini,body.sq .rail{border-radius:8px}
 .ws-card,.app,.folder,.filecard{background:linear-gradient(180deg,rgba(23,28,25,.78),rgba(15,19,17,.72));backdrop-filter:blur(20px) saturate(1.12);-webkit-backdrop-filter:blur(20px) saturate(1.12);border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-card),var(--glass-hi)}
 .ws-card:hover,.app:hover,.folder:hover,.filecard:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.16);box-shadow:var(--shadow-soft),var(--glass-hi)}
 .ws-card,.app,.folder{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
@@ -2408,6 +2409,28 @@ var SET_NAV=[['Appearance','◐'],['Workspaces','⧉'],['Apps','▦'],['Files','
 var ACCENTS=[['Green','#c5eaa5','rgba(197,234,165,.13)'],['Blue','#7fb2e5','rgba(127,178,229,.13)'],['Purple','#b79fe5','rgba(183,159,229,.13)'],['Pink','#e58bb1','rgba(229,139,177,.13)'],['Orange','#e5a87f','rgba(229,168,127,.13)'],['Yellow','#e5d97f','rgba(229,217,127,.13)'],['Gray','#93a197','rgba(147,161,151,.16)']];
 var DEF={theme:'dark',accent:0,bg:'dynamic',blur:40,scale:100,style:'rounded',anim:true,motion:false};
 var SET=JSON.parse(JSON.stringify(DEF));
+var SET_KEY='moor.settings.v1';
+function setSave(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
+function setLoad(){try{var s=JSON.parse(localStorage.getItem(SET_KEY)||'null');if(s&&typeof s==='object')SET=Object.assign(JSON.parse(JSON.stringify(DEF)),s)}catch(e){}}
+var WP={
+  dynamic:['Dynamic glow',''],
+  ember:['Ember','radial-gradient(120% 90% at 85% 100%, rgba(229,120,80,.16), transparent 60%),radial-gradient(100% 80% at 8% 0%, rgba(229,168,127,.1), transparent 60%)'],
+  ocean:['Deep sea','radial-gradient(120% 90% at 85% 100%, rgba(127,178,229,.15), transparent 60%),radial-gradient(100% 80% at 8% 0%, rgba(90,140,180,.12), transparent 60%)'],
+  forest:['Forest','radial-gradient(120% 90% at 85% 100%, rgba(120,190,120,.17), transparent 60%),radial-gradient(100% 80% at 8% 0%, rgba(60,120,80,.13), transparent 60%)'],
+  mono:['Plain','none']
+};
+var SET_PLANNED={
+  'Workspaces':'Default workspace, auto-save, and workspace templates live here.',
+  'Apps':'Per-app permissions and default apps live here.',
+  'Files':'Default folders, file preview, and trash behavior live here.',
+  'System':'Updates, language, and startup behavior live here.',
+  'Devices':'Paired phones and devices live here.',
+  'Network':'Relay, offline mode, and connection status live here.',
+  'Shortcuts':'Keyboard shortcuts live here.',
+  'AI & Agents':'Model connections, API keys, and routing live here. Nothing is assumed \u2014 you connect what you use.',
+  'Sync & Backup':'Storage connections and backup live here. Your files stay yours.',
+  'Advanced':'Memory controls live here. Indexing is always opt-in.'
+};
 var setNav=$('#setNav'),setMain=$('#setMain'),setCur='Appearance';
 SET_NAV.forEach(function(s){
   var b=document.createElement('button');b.innerHTML='<i style="font-style:normal">'+s[1]+'</i>'+esc(s[0]);
@@ -2416,6 +2439,7 @@ SET_NAV.forEach(function(s){
   setNav.appendChild(b);
 });
 function applySet(){
+  setSave();
   document.body.classList.toggle('light',SET.theme==='light'||(SET.theme==='auto'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches));
   var a=ACCENTS[SET.accent];
   document.documentElement.style.setProperty('--accent',a[1]);
@@ -2428,28 +2452,40 @@ function applySet(){
   var st=$('#noanimStyle');
   if(noanim&&!st){st=document.createElement('style');st.id='noanimStyle';st.textContent='*{transition:none!important;animation:none!important}';document.head.appendChild(st)}
   if(!noanim&&st)st.remove();
+  /* wallpaper */
+  var wp=WP[SET.bg]||WP.dynamic;
+  $$('.aurora').forEach(function(el){el.style.display=(SET.bg==='dynamic')?'':'none'});
+  document.body.style.backgroundImage=(wp&&wp[1]&&wp[1]!=='none')?wp[1]:'';
+  /* window style */
+  document.body.classList.toggle('sq',SET.style==='square');
 }
 function drawSettings(){
-  if(setCur!=='Appearance'){setMain.innerHTML='<h3>'+esc(setCur)+'</h3><p class="sub">These controls are not built yet.</p><p style="font-size:12px;color:var(--muted)">Appearance is the only finished section so far.</p>';return}
+  if(setCur==='About'){
+    setMain.innerHTML='<h3>About</h3><p class="sub">moor \u2014 the open-source harness.</p>'+
+      '<div class="set-row"><span>Version</span><b>'+esc(String(window.__MOOR_LIVE_VER||'dev'))+'</b></div>'+
+      '<div class="set-row"><span>Update feed</span><small style="max-width:300px">bassseamoor/test-submission-portfolio \u00b7 branch moor-updates \u00b7 live/moor.html</small></div>'+
+      '<div class="set-row"><span>Source</span><small style="max-width:300px">This file is the whole app. No build step.</small></div>';
+    return;
+  }
+  if(setCur!=='Appearance'){setMain.innerHTML='<h3>'+esc(setCur)+'</h3><p class="sub">Not built yet.</p><p style="font-size:12px;color:var(--muted);max-width:420px">'+esc(SET_PLANNED[setCur]||'These controls are coming.')+'</p>';return}
   var a=ACCENTS[SET.accent];
   setMain.innerHTML='<h3>Appearance</h3><p class="sub">Make it feel like yours.</p>'+
   '<div class="set-row"><span>Theme</span><span class="seg" id="segTheme">'+
     ['dark','light','auto'].map(function(t){return '<button data-t="'+t+'" class="'+(SET.theme===t?'on':'')+'">'+t[0].toUpperCase()+t.slice(1)+'</button>'}).join('')+'</span></div>'+
   '<div class="set-row"><span>Accent Color</span><span class="swrow" id="swRow">'+
     ACCENTS.map(function(ac,i){return '<span class="sw'+(i===SET.accent?' on':'')+'" data-i="'+i+'" title="'+ac[0]+'" style="background:'+ac[1]+'"></span>'}).join('')+'</span></div>'+
-  '<div class="set-row"><span>Background<small>Wallpaper source</small></span><span><select id="selBg"><option'+(SET.bg==='dynamic'?' selected':'')+'>dynamic</option><option'+(SET.bg==='still'?' selected':'')+'>still</option></select> <button class="btn" id="btnBg">Choose…</button></span></div>'+
+  '<div class="set-row"><span>Background<small>Wallpaper source</small></span><span><select id="selBg">'+Object.keys(WP).map(function(k){return '<option value="'+k+'"'+(SET.bg===k?' selected':'')+'>'+WP[k][0]+'</option>'}).join('')+'</select></span></div>'+
   '<div class="set-row"><span>Blur</span><span><input type="range" id="rgBlur" min="0" max="100" value="'+SET.blur+'"> <b id="blurVal" style="font-size:11px">'+SET.blur+'%</b></span></div>'+
   '<div class="set-row"><span>Interface Scale</span><select id="selScale">'+[80,90,100,110,125].map(function(s){return '<option'+(SET.scale===s?' selected':'')+'>'+s+'%</option>'}).join('')+'</select></div>'+
-  '<div class="set-row"><span>Window Style</span><select id="selStyle"><option>rounded</option><option>square</option></select></div>'+
+  '<div class="set-row"><span>Window Style</span><select id="selStyle">'+['rounded','square'].map(function(s){return '<option'+(SET.style===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'+
   '<div class="set-row"><span>Show Animations</span><span class="tgl'+(SET.anim?' on':'')+'" id="tgAnim"></span></div>'+
   '<div class="set-row"><span>Reduce Motion<small>Turns off movement effects</small></span><span class="tgl'+(SET.motion?' on':'')+'" id="tgMotion"></span></div>';
   $$('#segTheme button').forEach(function(b){b.addEventListener('click',function(){SET.theme=b.dataset.t;applySet();drawSettings()})});
   $$('#swRow .sw').forEach(function(s){s.addEventListener('click',function(){SET.accent=+s.dataset.i;applySet();drawSettings()})});
-  $('#selBg').addEventListener('change',function(e){SET.bg=e.target.value});
-  $('#btnBg').addEventListener('click',function(){toast('Wallpaper picker is not wired up yet.')});
+  $('#selBg').addEventListener('change',function(e){SET.bg=e.target.value;applySet()});
   $('#rgBlur').addEventListener('input',function(e){SET.blur=+e.target.value;$('#blurVal').textContent=SET.blur+'%';applySet()});
   $('#selScale').addEventListener('change',function(e){SET.scale=parseInt(e.target.value,10);applySet()});
-  $('#selStyle').addEventListener('change',function(){toast('Window style applies to floating windows.')});
+  $('#selStyle').addEventListener('change',function(e){SET.style=e.target.value;applySet()});
   $('#tgAnim').addEventListener('click',function(){SET.anim=!SET.anim;applySet();drawSettings()});
   $('#tgMotion').addEventListener('click',function(){SET.motion=!SET.motion;applySet();drawSettings()});
 }
@@ -2467,6 +2503,7 @@ $('#setSearch').addEventListener('input',function(e){
   var q=e.target.value.toLowerCase();
   $$('#setNav button').forEach(function(b){b.style.display=b.textContent.toLowerCase().indexOf(q)>=0?'':'none'});
 });
+setLoad();
 drawSettings();applySet();
 })();
 
@@ -2474,7 +2511,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-005';
+window.__MOOR_LIVE_VER='20260925-006';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
