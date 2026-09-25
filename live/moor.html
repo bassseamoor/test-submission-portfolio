@@ -471,7 +471,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
       <div class="recent-title">Recent</div>
       <button class="recent-row" data-q="continuity"><span><b>continuity</b><small>Recent search</small></span><i>SUGGESTION</i></button>
       <button class="recent-row" data-q="con"><span><b>con</b><small>Recent search</small></span><i>SUGGESTION</i></button>
-      <button class="recent-row" data-q="Render Foundry"><span><b>Render Foundry</b><small>Recent search</small></span><i>SUGGESTION</i></button>
+      <button class="recent-row" data-q="Render Studio"><span><b>Render Studio</b><small>Recent search</small></span><i>SUGGESTION</i></button>
       <button class="recent-row" data-q="MOOR City"><span><b>MOOR City</b><small>Recent search</small></span><i>SUGGESTION</i></button>
       <button class="recent-row" data-q="cit"><span><b>cit</b><small>Recent search</small></span><i>SUGGESTION</i></button>
     </div>
@@ -2413,7 +2413,7 @@ drawWs();
 /* ---------- apps ---------- */
 var APPS=[
  ['MOOR City','🎮','#e5b87f','worlds',1],['Settings','⚙','#93a197','dev',1],
- ['Render Foundry','⬢','#7fd6c2','create',0],['cit','▮','#b79fe5','worlds',0],
+ ['Render Studio','⬢','#7fd6c2','create',1],['cit','▮','#b79fe5','worlds',0],
  ['moor','📁','#e58bb1','worlds',0],['con','📁','#7fb2e5','worlds',0],['Assets','⧉','#7fd6c2','worlds',0],
  ['Scene Generator','✳','#9fe07f','create',0],['Material Lab','◔','#b79fe5','create',0],['Texture Tools','▦','#b79fe5','create',0],
  ['Video Tools','▶','#e58bb1','media',0],['Audio Lab','♫','#b79fe5','media',0],['AI Assistant','✦','#7fb2e5','tools',0],
@@ -2467,6 +2467,7 @@ function drawApps(){
 }
 function openApp(name){
   if(name==='MOOR City'){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank');return}
+  if(name==='Render Studio'){window.open('https://bassseamoor.github.io/render-queue/','_blank');return}
   if(name==='Settings'){go('settings');return}
 }
 /* ---------- custom tabs ---------- */
@@ -2474,16 +2475,29 @@ var BUILTIN_TABS=[['all','All'],['create','Create'],['tools','Tools'],['media','
 var TABS_KEY='moor.tabs.v1',TABAPPS_KEY='moor.tabapps.v1';
 function loadTabs(){
   try{var t=JSON.parse(localStorage.getItem(TABS_KEY)||'null');
-    if(Array.isArray(t))return t.filter(function(x){return typeof x==='string'&&x.trim()}).slice(0,20)}catch(e){}
-  var seed=['worlds']; // worlds is a custom tab, not a built-in
+    if(Array.isArray(t)){
+      t=t.filter(function(x){return typeof x==='string'&&x.trim()}).slice(0,20);
+      if(t.indexOf('studio')<0){t.push('studio');try{localStorage.setItem(TABS_KEY,JSON.stringify(t))}catch(e){}}
+      return t;
+    }}catch(e){}
+  var seed=['worlds','studio']; // worlds + studio are custom tabs, not built-ins
   try{localStorage.setItem(TABS_KEY,JSON.stringify(seed))}catch(e){}
   return seed;
 }
 function loadTabApps(){
   try{var m=JSON.parse(localStorage.getItem(TABAPPS_KEY)||'null');
-    if(m&&typeof m==='object')return m}catch(e){}
+    if(m&&typeof m==='object'){
+      var dirty=false;
+      Object.keys(m).forEach(function(k){ // 'Render Foundry' was renamed to 'Render Studio'
+        m[k]=m[k].map(function(n){return n==='Render Foundry'?'Render Studio':n});
+      });
+      if(!m.studio||!m.studio.length){m.studio=['Render Studio'];dirty=true}
+      if(dirty){try{localStorage.setItem(TABAPPS_KEY,JSON.stringify(m))}catch(e){}}
+      return m;
+    }}catch(e){}
   var seed={};
   APPS.forEach(function(a){if(a[3]==='worlds'){(seed.worlds=seed.worlds||[]).push(a[0])}});
+  seed.studio=['Render Studio'];
   try{localStorage.setItem(TABAPPS_KEY,JSON.stringify(seed))}catch(e){}
   return seed;
 }
@@ -2910,7 +2924,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-009';
+window.__MOOR_LIVE_VER='20260925-010';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
