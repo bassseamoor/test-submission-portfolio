@@ -315,7 +315,9 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,1
 .gin:focus{box-shadow:0 0 0 3px rgba(255,255,255,.1)}
 .gdot{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:#7fd67f;border:0;padding:0;cursor:pointer;box-shadow:0 0 12px rgba(127,214,127,.55)}
 .gdot:hover{filter:brightness(1.12)}
-#view-home .recent-card{max-width:720px;margin:12px auto 0}
+#view-home .recent-card{max-width:720px;margin:12px auto 0;display:none}
+#view-home .recent-card.open{display:block;animation:rcIn .18s ease-out}
+@keyframes rcIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 /* top bar: never clip, compact gracefully */
 .top-right{min-width:0}
 .top-right .tbtn{white-space:nowrap;flex-shrink:0}
@@ -1821,13 +1823,37 @@ $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.d
     if(cb&&cb.value!==v){cb.value=v;try{cb.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
   }
   function drive(q){
+    hideRecent();
     var p=pal(),gin=$('#gin');
     if(p){p.openWithQuery(q);if(gin&&document.activeElement!==gin)gin.focus()}
     else openPalette();
   }
+  /* Recent card: hidden until the command bar is clicked/focused (ground
+     truth). Typing hands off to the palette; clicking away, Esc, or Ctrl+K
+     hides the card again. Clicking the bar while the card is open closes it. */
+  var recentCard=$('#recentCard');
+  function showRecent(){if(recentCard&&document.body.dataset.view==='home'){var p=pal();if(!p||!p.isOpen())recentCard.classList.add('open')}}
+  function hideRecent(){if(recentCard)recentCard.classList.remove('open')}
+  window.__moorDriveSearch=drive;
+  window.__moorHideRecent=hideRecent;
+  document.addEventListener('click',function(e){
+    if(recentCard&&recentCard.classList.contains('open')&&!e.target.closest('#gbar')&&!e.target.closest('#recentCard'))hideRecent();
+  });
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='k')hideRecent();
+  });
   var gin=$('#gin');
+  var ginMouse=false; /* focus arriving from a mouse click is handled by click, not focus */
   if(gin){
-    gin.addEventListener('click',function(){drive(gin.value)});
+    gin.addEventListener('mousedown',function(){ginMouse=true});
+    gin.addEventListener('click',function(){
+      var wasMouse=ginMouse;ginMouse=false;
+      if(gin.value){drive(gin.value);return}
+      if(!wasMouse){showRecent();return}
+      if(recentCard&&recentCard.classList.contains('open'))hideRecent();else showRecent();
+    });
+    gin.addEventListener('focus',function(){if(!ginMouse&&!gin.value)showRecent()});
+    gin.addEventListener('blur',function(){ginMouse=false});
     gin.addEventListener('input',function(){mirrorLegacy(gin.value);drive(gin.value)});
     gin.addEventListener('keydown',function(e){
       var p=pal();
@@ -1840,7 +1866,7 @@ $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.d
       }
     });
     gin.addEventListener('keyup',function(e){
-      if(e.key==='Escape'){var p=pal();if(p&&p.isOpen())p.close();gin.value='';mirrorLegacy('');gin.blur()}
+      if(e.key==='Escape'){var p=pal();if(p&&p.isOpen())p.close();hideRecent();gin.value='';mirrorLegacy('');gin.blur()}
     });
   }
   var gdot=$('#gdot');
@@ -1855,6 +1881,7 @@ $$('.recent-row').forEach(function(b){b.addEventListener('click',function(){
   var inp=document.querySelector('#cb .cbin');
   if(inp){inp.value=b.dataset.q;try{inp.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
   else if(!gin)toast('Search is still loading…');
+  if(window.__moorDriveSearch)window.__moorDriveSearch(b.dataset.q);
 })});
 /* ---------- continuity ---------- */
 var cbtn=$('#continuityBtn');
@@ -2112,6 +2139,7 @@ function wsRenderRecents(recents){
       var gin=$('#gin');if(gin)gin.value=q;
       var inp=document.querySelector('#cb .cbin');
       if(inp){inp.value=q;try{inp.dispatchEvent(new Event('input',{bubbles:true}))}catch(e){}}
+      if(window.__moorDriveSearch)window.__moorDriveSearch(q);
     });
     card.appendChild(b);
   });
@@ -2347,7 +2375,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-001';
+window.__MOOR_LIVE_VER='20260925-002';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
