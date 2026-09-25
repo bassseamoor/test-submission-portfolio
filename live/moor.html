@@ -16,6 +16,13 @@ body.light{ --bg:#f2f4f1; --panel:rgba(255,255,255,.86); --panel2:rgba(255,255,2
   --border:rgba(0,0,0,.1); --border2:rgba(0,0,0,.16); --text:#141a15; --muted:#5c665d; --faint:#8a948a;
   --accent-dim:rgba(60,120,40,.12); }
 *{box-sizing:border-box}
+/* modern themed scrollbars, app-wide */
+*{scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent) 55%,transparent);border-radius:8px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:var(--accent);background-clip:content-box;border:2px solid transparent}
+*::-webkit-scrollbar-corner{background:transparent}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;transition:background .3s}
 .aurora{position:fixed;pointer-events:none;z-index:0;border-radius:50%;filter:blur(90px)}
@@ -3102,7 +3109,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-019';
+window.__MOOR_LIVE_VER='20260925-020';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
