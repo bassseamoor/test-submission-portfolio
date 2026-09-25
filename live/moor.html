@@ -110,6 +110,15 @@ input:focus,select:focus{border-color:var(--accent)}
 .filecard .thumb.img{background:linear-gradient(135deg,#274b63,#16283a)}
 .filecard b{display:block;font-size:10px;font-weight:650;word-break:break-all}
 .filecard small{font-size:10px;color:var(--muted)}
+.folder.sel,.filecard.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.iconbtn:disabled{opacity:.35;cursor:default}
+.folder-grid.list{grid-template-columns:1fr;gap:8px}
+.folder-grid.list .folder{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px}
+.folder-grid.list .folder .fi{font-size:24px}
+.folder-grid.list .folder b{margin:0;font-size:12px;flex:1}
+.folder-grid.list .filecard{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px}
+.folder-grid.list .filecard .thumb{height:40px;width:40px;flex:none;margin:0;font-size:18px}
+.folder-grid.list .filecard b{flex:1;font-size:12px}
 .proj-detail{border-left:1px solid var(--border);padding:20px 18px;font-size:12px}
 .proj-detail .di{font-size:40px}
 .proj-detail h3{margin:10px 0 2px;font-size:15px}
@@ -414,14 +423,14 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
   <section class="view" id="view-projects" aria-label="Projects">
     <div class="panel">
       <div class="panel-head">
-        <button class="iconbtn" title="Back">←</button>
-        <button class="iconbtn" title="Forward">→</button>
+        <button class="iconbtn" id="projBack" title="Back">←</button>
+        <button class="iconbtn" id="projFwd" title="Forward">→</button>
         <div class="crumb" style="margin:0">▤&nbsp; Projects &nbsp;›&nbsp; <b id="crumbProj">Folders</b></div>
         <div class="sp"></div>
-        <button class="iconbtn" title="Grid">▦</button>
-        <button class="iconbtn" title="List">☰</button>
-        <button class="iconbtn" title="More">…</button>
-        <button class="btn primary">+ New</button>
+        <button class="iconbtn on" title="Grid" data-pview="grid">▦</button>
+        <button class="iconbtn" title="List" data-pview="list">☰</button>
+        <button class="iconbtn" id="projMore" title="More">…</button>
+        <button class="btn primary" id="projNew">+ New</button>
       </div>
       <div class="proj-body">
         <div class="proj-nav">
@@ -1924,7 +1933,27 @@ function projFmtSize(bytes){
 function projFmtDate(iso){
   try{var d=new Date(iso);return isNaN(d)?'\u2014':d.toLocaleString()}catch(e){return '\u2014'}
 }
-var projSourceId=null,projPath='';
+var projSourceId=null,projPath='',projSelected=null,projHist=[],projHistI=-1,projView='grid';
+function projGo(path,push){
+  projPath=path;projSelected=null;projDetailEmpty();
+  if(push!==false){projHist=projHist.slice(0,projHistI+1);projHist.push(path);projHistI=projHist.length-1}
+  projSyncNav();projRenderList();
+}
+function projSyncNav(){
+  var bk=$('#projBack'),fw=$('#projFwd');
+  if(bk)bk.disabled=projHistI<=0;
+  if(fw)fw.disabled=projHistI>=projHist.length-1;
+}
+function projDetailEmpty(msg){
+  var det=$('#projDetail');if(!det)return;
+  det.innerHTML='<div class="di">\u25a4</div><h3>'+esc(msg||'Nothing selected')+'</h3><div class="kind">Details</div><div class="desc">Select a file or folder to see its details here.</div>';
+}
+function projSelect(it,el){
+  projSelected=it;
+  $$('#projList .folder,#projList .filecard').forEach(function(x){x.classList.remove('sel')});
+  if(el)el.classList.add('sel');
+  projShowDetail(it);
+}
 function projSetCrumb(parts){
   var c=$('#crumbProj');if(c)c.textContent='Folders'+(parts.length?' \u203a '+parts.join(' \u203a '):'');
 }
@@ -1954,7 +1983,7 @@ async function drawProjects(){
   var sources=((status&&status.sources)||[]).filter(function(s){return s&&(s.kind==='local'||s.path)&&s.id});
   if(!sources.length){projEmpty(status?'No local folders are connected on this PC yet.':'Could not reach the local node. If moor is running, connect a folder in Continuity \u2192 Sources.');return}
   if(!projSourceId||!sources.some(function(s){return s.id===projSourceId}))projSourceId=sources[0].id;
-  projPath='';
+  projPath='';projHist=[''];projHistI=0;projSyncNav();projDetailEmpty();
   projRenderSources(sources);
   await projRenderList();
 }
@@ -1967,11 +1996,11 @@ function projRenderSources(sources){
     b.className='proj-src'+(s.id===projSourceId?' on':'');
     b.textContent=s.label||s.path||s.id;
     b.title=s.path||'';
-    b.addEventListener('click',function(){projSourceId=s.id;projPath='';projRenderSources(sources);projRenderList()});
+    b.addEventListener('click',function(){projSourceId=s.id;projRenderSources(sources);projGo('')});
     bar.appendChild(b);
   });
   host.appendChild(bar);
-  var list=document.createElement('div');list.id='projList';list.className='folder-grid';host.appendChild(list);
+  var list=document.createElement('div');list.id='projList';list.className='folder-grid'+(projView==='list'?' list':'');host.appendChild(list);
 }
 async function projRenderList(){
   var list=$('#projList');if(!list)return;
@@ -1987,7 +2016,7 @@ async function projRenderList(){
   if(crumbs.length){
     var up=document.createElement('button');up.className='folder up';
     up.innerHTML='<div class="fi">\u2b06</div><b>Up</b><small>'+esc(crumbs.slice(0,-1).join('/')||'root')+'</small>';
-    up.addEventListener('click',function(){projPath=crumbs.slice(0,-1).join('/');projRenderList()});
+    up.addEventListener('click',function(){projGo(crumbs.slice(0,-1).join('/'))});
     list.appendChild(up);
   }
   if(!items.length){
@@ -1997,23 +2026,28 @@ async function projRenderList(){
     if(it.kind==='folder'){
       var f=document.createElement('button');f.className='folder';
       f.innerHTML='<div class="fi" style="color:#7fb2e5">📁</div><b>'+esc(it.name)+'</b><small>folder</small>';
-      f.addEventListener('click',function(){projPath=projPath?projPath+'/'+it.name:it.name;projRenderList()});
+      f.addEventListener('click',function(){projSelect({kind:'folder',name:it.name,path:it.path,bytes:it.bytes,modifiedAt:it.modifiedAt},f)});
+      f.addEventListener('dblclick',function(){projGo(projPath?projPath+'/'+it.name:it.name)});
       list.appendChild(f);
     }else{
       var c=document.createElement('button');c.className='filecard';
       c.innerHTML='<div class="thumb">📄</div><b>'+esc(it.name)+'</b><small>'+esc(projFmtSize(it.bytes))+'</small>';
-      c.addEventListener('click',function(){projShowDetail(it)});
+      c.addEventListener('click',function(){projSelect(it,c)});
       list.appendChild(c);
     }
   });
 }
 function projShowDetail(it){
   var det=$('#projDetail');if(!det)return;
+  var isF=it.kind==='folder';
   det.innerHTML=
-   '<div class="di">'+(it.kind==='folder'?'📁':'📄')+'</div><h3>'+esc(it.name)+'</h3><div class="kind">'+esc(it.kind==='folder'?'Folder':'File')+'</div>'+
+   '<div class="di">'+(isF?'📁':'📄')+'</div><h3>'+esc(it.name)+'</h3><div class="kind">'+(isF?'Folder':'File')+'</div>'+
    '<div class="kv"><span>Size</span><span>'+esc(projFmtSize(it.bytes))+'</span></div>'+
    '<div class="kv"><span>Modified</span><span>'+esc(projFmtDate(it.modifiedAt))+'</span></div>'+
-   '<div class="kv"><span>Path</span><span>'+esc(it.path||'')+'</span></div>';
+   '<div class="kv"><span>Path</span><span>'+esc(it.path||'')+'</span></div>'+
+   (isF?'<button class="btn primary" id="projOpenBtn" style="width:100%;margin-top:12px">Open folder &rarr;</button>':'');
+  var ob=$('#projOpenBtn');
+  if(ob)ob.addEventListener('click',function(){projGo(projPath?projPath+'/'+it.name:it.name)});
 }
 /* ---------- project switch ---------- */
 function showMoor(){$('#moorProj').hidden=false;$('#aqProj').hidden=true;$('#swMoor').classList.add('on');$('#swAq').classList.remove('on')}
@@ -2021,6 +2055,32 @@ function showAq(){$('#moorProj').hidden=true;$('#aqProj').hidden=false;$('#swMoo
 $('#swMoor').addEventListener('click',showMoor);
 $('#swAq').addEventListener('click',showAq);
 drawProjects();
+/* ---------- projects panel-head: back/forward history, grid/list, refresh, new ---------- */
+(function(){
+  var bk=$('#projBack'),fw=$('#projFwd');
+  function navGo(i){
+    if(i<0||i>=projHist.length)return;
+    projHistI=i;projPath=projHist[i];projSelected=null;projDetailEmpty();projSyncNav();projRenderList();
+  }
+  if(bk)bk.addEventListener('click',function(){navGo(projHistI-1)});
+  if(fw)fw.addEventListener('click',function(){navGo(projHistI+1)});
+  $$('#view-projects .panel-head [data-pview]').forEach(function(b){b.addEventListener('click',function(){
+    projView=b.dataset.pview||'grid';
+    $$('#view-projects .panel-head [data-pview]').forEach(function(x){x.classList.toggle('on',x===b)});
+    var l=$('#projList');if(l)l.classList.toggle('list',projView==='list');
+  })});
+  var pm=$('#projMore');if(pm)pm.addEventListener('click',function(){projSelected=null;projDetailEmpty();projRenderList();toast('Folder list refreshed.')});
+  var pn=$('#projNew');if(pn)pn.addEventListener('click',function(){toast('Creating folders here is planned \u2014 make them in your file manager, then hit \u2026 to refresh.')});
+  /* side nav: Home + Projects work; the rest are honest placeholders */
+  $$('.proj-nav button').forEach(function(b){
+    if(b.hasAttribute('data-go'))return;
+    b.addEventListener('click',function(){
+      var name=b.textContent.replace(/[^A-Za-z ]/g,'').trim();
+      if(name==='Projects'){drawProjects();return}
+      toast(name+' view is planned \u2014 not available yet.');
+    });
+  });
+})();
 /* ---------- tiny markdown renderer ---------- */
 function md(src){
   function inline(s){return esc(s)
@@ -2393,7 +2453,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-003';
+window.__MOOR_LIVE_VER='20260925-004';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
