@@ -263,6 +263,19 @@ input:focus,select:focus{border-color:var(--accent)}
 .set-main h3{margin:0 0 2px;font-size:15px}
 .set-main .sub{font-size:11px;color:var(--muted);margin-bottom:16px}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border);font-size:12px}
+/* ---- AI & Agents: provider connection cards ---- */
+.ai-prov{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:10px 0;background:rgba(255,255,255,.02)}
+.ai-prov .ai-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ai-prov .ai-head b{font-size:13px}
+.ai-prov .ai-head small{color:var(--muted);font-weight:400}
+.ai-keyrow{display:flex;gap:8px;margin-top:8px}
+.ai-keyrow input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit}
+.ai-keyrow button{flex:0 0 auto;background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.ai-keyrow button:hover{border-color:var(--accent)}
+.ai-status{font-size:11px;color:var(--muted);margin-top:6px;min-height:15px}
+.ai-status.ok{color:#9fe07f}
+.ai-status.bad{color:#e58b8b}
+.ai-rules{font-size:11px;color:var(--muted);padding:4px 0 6px;line-height:1.7}
 .set-row small{display:block;color:var(--muted);font-size:10px}
 .seg{display:flex;gap:8px}
 .seg button{border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--muted);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:650;cursor:pointer}
@@ -2801,6 +2814,86 @@ function applySet(){
   /* window style */
   document.body.classList.toggle('sq',SET.style==='square');
 }
+/* ---------- AI & Agents: model + API connections ---------- */
+var AI_KEY='moor.ai.v1';
+var AI_PROVIDERS=[
+ {id:'groq',name:'Groq',blurb:'Free tier · fast judgment calls',test:'https://api.groq.com/openai/v1/models'},
+ {id:'google',name:'Google AI Studio',blurb:'Free tier · Gemini models',test:'https://generativelanguage.googleapis.com/v1beta/models?key=',keyInUrl:true},
+ {id:'openrouter',name:'OpenRouter',blurb:'Free models · many providers, one key',test:'https://openrouter.ai/api/v1/auth/key'},
+ {id:'github',name:'GitHub Models',blurb:'Free with a GitHub account · use a fine-grained PAT',test:null},
+ {id:'mistral',name:'Mistral',blurb:'Free tier · La Plateforme',test:'https://api.mistral.ai/v1/models'},
+ {id:'nvidia',name:'NVIDIA NIM',blurb:'Free credits · build.nvidia.com',test:'https://integrate.api.nvidia.com/v1/models'}
+];
+var AI={ollama:'http://127.0.0.1:11434',keys:{},judge:'groq',verifier:'qwen3:8b'};
+function aiLoad(){try{var s=JSON.parse(localStorage.getItem(AI_KEY)||'null');if(s&&typeof s==='object')AI=Object.assign(AI,s)}catch(e){}}
+function aiSave(){try{localStorage.setItem(AI_KEY,JSON.stringify(AI))}catch(e){}}
+aiLoad();
+function aiCheckOllama(msgEl){
+  var base=AI.ollama.replace(/\/+$/,'');
+  msgEl.className='ai-status';msgEl.textContent='Checking…';
+  fetch(base+'/api/tags',{signal:AbortSignal.timeout(8000)}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+  }).then(function(d){
+    var ms=(d.models||[]).map(function(m){return m.name});
+    msgEl.classList.add('ok');
+    msgEl.textContent=ms.length?('Connected · '+ms.length+' model'+(ms.length>1?'s':'')+': '+ms.join(', ')):'Connected · no models downloaded yet';
+  }).catch(function(){msgEl.classList.add('bad');msgEl.textContent='Could not reach Ollama at '+base+'. Is it running?'});
+}
+function aiTestProvider(p,msgEl){
+  var key=AI.keys[p.id];
+  msgEl.className='ai-status';
+  if(!key){msgEl.textContent='Save a key first.';return}
+  if(!p.test){msgEl.textContent='Saved. This one has no quick check — the key will be used when you call it.';return}
+  msgEl.textContent='Checking…';
+  var url=p.keyInUrl?p.test+encodeURIComponent(key):p.test;
+  var opts={signal:AbortSignal.timeout(10000)};
+  if(!p.keyInUrl){opts.headers={'Authorization':'Bearer '+key};if(p.id==='openrouter')opts.headers['X-Title']='moor'}
+  fetch(url,opts).then(function(r){
+    if(r.ok){msgEl.classList.add('ok');msgEl.textContent='Connected · key works.'}
+    else{msgEl.classList.add('bad');msgEl.textContent='Key was rejected (HTTP '+r.status+').'}
+  }).catch(function(){msgEl.textContent='Could not verify from this browser (network/CORS). Key is saved anyway.'});
+}
+function drawAISettings(){
+  var h='<h3>AI &amp; Agents</h3><p class="sub">Connect models and API keys. Nothing is assumed — you connect what you use.</p>';
+  h+='<div class="ai-prov"><div class="ai-head"><b>Ollama <small>local models · private &amp; offline</small></b></div>'+
+     '<div class="ai-keyrow"><input id="aiOllama" value="'+esc(AI.ollama)+'" placeholder="http://127.0.0.1:11434" spellcheck="false" autocomplete="off">'+
+     '<button id="aiOllamaCheck">Check</button></div><div class="ai-status" id="aiOllamaMsg"></div></div>';
+  h+='<h4 style="margin:18px 0 4px;font-size:12px;letter-spacing:.08em;color:var(--muted)">CLOUD API KEYS</h4>';
+  AI_PROVIDERS.forEach(function(p){
+    var has=!!AI.keys[p.id];
+    h+='<div class="ai-prov"><div class="ai-head"><b>'+esc(p.name)+' <small>'+esc(p.blurb)+'</small></b>'+
+       '<span class="ai-status'+(has?' ok':'')+'">'+(has?'Saved':'Not set')+'</span></div>'+
+       '<div class="ai-keyrow"><input type="password" data-k="'+p.id+'" value="'+esc(AI.keys[p.id]||'')+'" placeholder="Paste key…" autocomplete="off" spellcheck="false">'+
+       '<button data-save="'+p.id+'">Save</button>'+(p.test?'<button data-test="'+p.id+'">Test</button>':'')+'</div>'+
+       '<div class="ai-status" data-msg="'+p.id+'"></div></div>';
+  });
+  h+='<h4 style="margin:18px 0 4px;font-size:12px;letter-spacing:.08em;color:var(--muted)">ROUTING</h4>'+
+     '<div class="ai-prov"><div class="ai-rules">Judgment + online &rarr; cloud &nbsp;·&nbsp; Private / offline / instant &rarr; local &nbsp;·&nbsp; Verifier scoring &rarr; always local</div>'+
+     '<div class="set-row"><span>Judgment provider<small>Used when online and the call matters</small></span><span><select id="aiJudge">'+
+     AI_PROVIDERS.map(function(p){return '<option value="'+p.id+'"'+(AI.judge===p.id?' selected':'')+'>'+esc(p.name)+'</option>'}).join('')+'</select></span></div>'+
+     '<div class="set-row"><span>Verifier model<small>Local model that scores the work</small></span><span><input id="aiVerifier" value="'+esc(AI.verifier)+'" spellcheck="false" autocomplete="off" style="max-width:170px"></span></div></div>';
+  h+='<p style="font-size:11px;color:var(--muted);max-width:460px">Keys stay in this browser\u2019s local storage and are only ever sent to the provider you chose. Agent worker loops aren\u2019t built yet.</p>';
+  setMain.innerHTML=h;
+  $('#aiOllamaCheck').addEventListener('click',function(){
+    AI.ollama=$('#aiOllama').value.trim()||'http://127.0.0.1:11434';aiSave();aiCheckOllama($('#aiOllamaMsg'));
+  });
+  $$('#setMain [data-save]').forEach(function(b){b.addEventListener('click',function(){
+    var id=b.getAttribute('data-save');
+    var v=setMain.querySelector('input[data-k="'+id+'"]').value.trim();
+    if(v)AI.keys[id]=v;else delete AI.keys[id];
+    aiSave();
+    var card=b.closest('.ai-prov'),st=card.querySelector('.ai-head .ai-status');
+    st.textContent=v?'Saved':'Not set';st.className='ai-status'+(v?' ok':'');
+    var mg=card.querySelector('[data-msg]');mg.className='ai-status';mg.textContent=v?'Saved.':'Cleared.';
+  })});
+  $$('#setMain [data-test]').forEach(function(b){b.addEventListener('click',function(){
+    var id=b.getAttribute('data-test');
+    var p=AI_PROVIDERS.filter(function(x){return x.id===id})[0];
+    aiTestProvider(p,b.closest('.ai-prov').querySelector('[data-msg]'));
+  })});
+  $('#aiJudge').addEventListener('change',function(e){AI.judge=e.target.value;aiSave()});
+  $('#aiVerifier').addEventListener('change',function(e){AI.verifier=e.target.value.trim()||'qwen3:8b';aiSave()});
+}
 function drawSettings(){
   if(setCur==='About'){
     setMain.innerHTML='<h3>About</h3><p class="sub">moor \u2014 the open-source harness.</p>'+
@@ -2814,6 +2907,7 @@ function drawSettings(){
     setMain.appendChild(getWidgetsNode());
     return;
   }
+  if(setCur==='AI & Agents'){drawAISettings();return}
   if(setCur!=='Appearance'){setMain.innerHTML='<h3>'+esc(setCur)+'</h3><p class="sub">Not built yet.</p><p style="font-size:12px;color:var(--muted);max-width:420px">'+esc(SET_PLANNED[setCur]||'These controls are coming.')+'</p>';return}
   var a=ACCENTS[SET.accent];
   setMain.innerHTML='<h3>Appearance</h3><p class="sub">Make it feel like yours.</p>'+
@@ -2858,7 +2952,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-013';
+window.__MOOR_LIVE_VER='20260925-014';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
