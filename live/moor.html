@@ -38,7 +38,15 @@ body.light .aurora{opacity:.35}
 .rail button:hover{background:rgba(255,255,255,.06);color:var(--text)}
 .rail button.on{background:var(--accent-dim);color:var(--accent)}
 /* main views */
-main{position:fixed;inset:var(--top-h) 0 0 var(--rail-w);z-index:10;overflow:auto;padding:26px 34px 90px}
+main{position:fixed;z-index:10;overflow:auto;padding:26px 34px 90px}
+main.floating{background:var(--panel);border:1px solid var(--border2);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+.ph{position:fixed;z-index:60;touch-action:none;opacity:0;transition:opacity .12s;border-radius:4px}
+.ph:hover,.ph.on{opacity:1;background:var(--accent)}
+.ph.n,.ph.s{cursor:ns-resize}.ph.e,.ph.w{cursor:ew-resize}
+.ph.ne,.ph.sw{cursor:nesw-resize}.ph.nw,.ph.se{cursor:nwse-resize}
+.pmove{position:fixed;z-index:61;width:56px;height:12px;border-radius:7px;background:var(--border2);opacity:0;pointer-events:none;transition:opacity .15s,background .15s;cursor:move}
+.pmove.show{opacity:.85;pointer-events:auto}
+.pmove.show:hover{background:var(--accent)}
 .view{display:none;max-width:1180px;margin:0 auto;position:relative;min-height:60vh}
 body[data-view="home"] #view-home{display:block}
 body[data-view="projects"] #view-projects{display:block}
@@ -474,7 +482,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
   <button data-go="workspaces" title="Workspaces">⧉</button>
   <button data-go="settings" title="Settings">⚙</button>
 </nav>
-<main>
+<main id="moorMain">
   <div class="gbar" id="gbar" role="search">
     <input class="gin" id="gin" placeholder="Search, open, build…" autocomplete="off" spellcheck="false" aria-label="Search moor">
     <button class="gdot" id="gdot" title="Update ready" aria-label="Update status"></button>
@@ -2762,7 +2770,7 @@ function getWidgetsNode(){ // built once; setMain re-appends the same node so in
 /* ---------- settings ---------- */
 var SET_NAV=[['Appearance','◐'],['Widgets','⊞'],['Workspaces','⧉'],['Apps','▦'],['Files','▤'],['System','🖥'],['Devices','📱'],['Network','⌁'],['Shortcuts','⌨'],['AI & Agents','✦'],['Sync & Backup','⤴'],['Advanced','⚙'],['About','ⓘ']];
 var ACCENTS=[['Green','#c5eaa5','rgba(197,234,165,.13)'],['Blue','#7fb2e5','rgba(127,178,229,.13)'],['Purple','#b79fe5','rgba(183,159,229,.13)'],['Pink','#e58bb1','rgba(229,139,177,.13)'],['Orange','#e5a87f','rgba(229,168,127,.13)'],['Yellow','#e5d97f','rgba(229,217,127,.13)'],['Gray','#93a197','rgba(147,161,151,.16)']];
-var DEF={theme:'dark',accent:0,bg:'dynamic',blur:40,scale:100,style:'rounded',anim:true,motion:false};
+var DEF={theme:'dark',accent:0,bg:'dynamic',blur:40,scale:100,style:'rounded',anim:true,motion:false,movePanels:false,panel:null};
 var SET=JSON.parse(JSON.stringify(DEF));
 var SET_KEY='moor.settings.v1';
 function setSave(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
@@ -2920,7 +2928,9 @@ function drawSettings(){
   '<div class="set-row"><span>Interface Scale</span><select id="selScale">'+[80,90,100,110,125].map(function(s){return '<option'+(SET.scale===s?' selected':'')+'>'+s+'%</option>'}).join('')+'</select></div>'+
   '<div class="set-row"><span>Window Style</span><select id="selStyle">'+['rounded','square'].map(function(s){return '<option'+(SET.style===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'+
   '<div class="set-row"><span>Show Animations</span><span class="tgl'+(SET.anim?' on':'')+'" id="tgAnim"></span></div>'+
-  '<div class="set-row"><span>Reduce Motion<small>Turns off movement effects</small></span><span class="tgl'+(SET.motion?' on':'')+'" id="tgMotion"></span></div>';
+  '<div class="set-row"><span>Reduce Motion<small>Turns off movement effects</small></span><span class="tgl'+(SET.motion?' on':'')+'" id="tgMotion"></span></div>'+
+  '<div class="set-row"><span>Move panels<small>Drag the grip at the top of the panel</small></span><span class="tgl'+(SET.movePanels?' on':'')+'" id="tgMovePanels"></span></div>'+
+  '<div class="set-row"><span>Panel layout<small>Back to full size, docked left</small></span><span><button class="btn" id="btnPanelReset">Reset</button></span></div>';
   $$('#segTheme button').forEach(function(b){b.addEventListener('click',function(){SET.theme=b.dataset.t;applySet();drawSettings()})});
   $$('#swRow .sw').forEach(function(s){s.addEventListener('click',function(){SET.accent=+s.dataset.i;applySet();drawSettings()})});
   $('#selBg').addEventListener('change',function(e){SET.bg=e.target.value;applySet()});
@@ -2929,8 +2939,10 @@ function drawSettings(){
   $('#selStyle').addEventListener('change',function(e){SET.style=e.target.value;applySet()});
   $('#tgAnim').addEventListener('click',function(){SET.anim=!SET.anim;applySet();drawSettings()});
   $('#tgMotion').addEventListener('click',function(){SET.motion=!SET.motion;applySet();drawSettings()});
+  $('#tgMovePanels').addEventListener('click',function(){SET.movePanels=!SET.movePanels;setSave();applyPanel();drawSettings();toast(SET.movePanels?'Panel moving on — drag the grip at the top.':'Panel moving off.')});
+  $('#btnPanelReset').addEventListener('click',function(){SET.panel=null;setSave();applyPanel();toast('Panel reset to full size.')});
 }
-$('#qaReset').addEventListener('click',function(){SET=JSON.parse(JSON.stringify(DEF));applySet();drawSettings();toast('Settings reset to default.')});
+$('#qaReset').addEventListener('click',function(){SET=JSON.parse(JSON.stringify(DEF));applySet();applyPanel();drawSettings();toast('Settings reset to default.')});
 $('#qaExport').addEventListener('click',function(){
   var blob=new Blob([JSON.stringify(SET,null,2)],{type:'application/json'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='moor-settings.json';document.body.appendChild(a);a.click();a.remove();
@@ -2938,21 +2950,96 @@ $('#qaExport').addEventListener('click',function(){
 $('#qaImport').addEventListener('click',function(){$('#qaFile').click()});
 $('#qaFile').addEventListener('change',function(e){
   var f=e.target.files[0];if(!f)return;
-  var r=new FileReader();r.onload=function(){try{var s=JSON.parse(r.result);SET=Object.assign(JSON.parse(JSON.stringify(DEF)),s);applySet();drawSettings();toast('Settings imported.')}catch(err){toast('That file did not look like settings.')}};r.readAsText(f);
+  var r=new FileReader();r.onload=function(){try{var s=JSON.parse(r.result);SET=Object.assign(JSON.parse(JSON.stringify(DEF)),s);applySet();applyPanel();drawSettings();toast('Settings imported.')}catch(err){toast('That file did not look like settings.')}};r.readAsText(f);
 });
 $('#setSearch').addEventListener('input',function(e){
   var q=e.target.value.toLowerCase();
   $$('#setNav button').forEach(function(b){b.style.display=b.textContent.toLowerCase().indexOf(q)>=0?'':'none'});
 });
+/* ---------- resizable / movable main panel (left-rail surfaces) ---------- */
+var moorMain=$('#moorMain');
+var PH_DIRS=['n','s','e','w','ne','nw','se','sw'],phEls={};
+PH_DIRS.forEach(function(d){var el=document.createElement('div');el.className='ph '+d;el.dataset.dir=d;document.body.appendChild(el);phEls[d]=el});
+var pmoveEl=document.createElement('div');pmoveEl.className='pmove';pmoveEl.title='Drag to move the panel';document.body.appendChild(pmoveEl);
+function pRailW(){return window.innerWidth<=640?0:64}
+function pTopH(){return 60}
+function pDock(){return {x:pRailW(),y:pTopH(),w:window.innerWidth-pRailW(),h:window.innerHeight-pTopH()}}
+function pDocked(g){var d=pDock();return Math.abs(g.x-d.x)<2&&Math.abs(g.y-d.y)<2&&Math.abs(g.w-d.w)<2&&Math.abs(g.h-d.h)<2}
+function pGeom(){return SET.panel?{x:SET.panel.x,y:SET.panel.y,w:SET.panel.w,h:SET.panel.h}:pDock()}
+function applyPanel(){
+  var g=pGeom(),d=pDock();
+  if(SET.panel){ /* clamp to viewport */
+    g.w=Math.max(480,Math.min(g.w,d.w));g.h=Math.max(360,Math.min(g.h,d.h));
+    g.x=Math.max(d.x,Math.min(g.x,d.x+d.w-120));g.y=Math.max(d.y,Math.min(g.y,d.y+d.h-60));
+  }
+  moorMain.style.left=g.x+'px';moorMain.style.top=g.y+'px';
+  moorMain.style.width=g.w+'px';moorMain.style.height=g.h+'px';
+  moorMain.classList.toggle('floating',!!(SET.panel&&!pDocked(g)));
+  var t=6,P={
+    n:[g.x,g.y-t,g.w,t],s:[g.x,g.y+g.h,g.w,t],
+    e:[g.x+g.w,g.y,t,g.h],w:[g.x-t,g.y,t,g.h],
+    ne:[g.x+g.w-t,g.y-t,t*3,t*3],nw:[g.x-t,g.y-t,t*3,t*3],
+    se:[g.x+g.w-t,g.y+g.h-t,t*3,t*3],sw:[g.x-t,g.y+g.h-t,t*3,t*3]};
+  PH_DIRS.forEach(function(dir){var el=phEls[dir],q=P[dir];
+    /* keep handles inside the viewport so edge/corner drags always land */
+    var hx=Math.max(0,Math.min(q[0],window.innerWidth-8)),hy=Math.max(0,Math.min(q[1],window.innerHeight-8));
+    el.style.left=hx+'px';el.style.top=hy+'px';
+    el.style.width=Math.max(8,Math.min(q[2],window.innerWidth-hx))+'px';
+    el.style.height=Math.max(8,Math.min(q[3],window.innerHeight-hy))+'px'});
+  pmoveEl.classList.toggle('show',!!SET.movePanels);
+  pmoveEl.style.left=(g.x+g.w/2-28)+'px';pmoveEl.style.top=(g.y+5)+'px';
+}
+function pStoreGeom(g){
+  g={x:Math.round(g.x),y:Math.round(g.y),w:Math.round(g.w),h:Math.round(g.h)};
+  SET.panel=pDocked(g)?null:g;setSave();applyPanel();
+}
+PH_DIRS.forEach(function(dir){
+  phEls[dir].addEventListener('pointerdown',function(e){
+    e.preventDefault();e.stopPropagation();
+    var el=phEls[dir];el.classList.add('on');
+    try{el.setPointerCapture(e.pointerId)}catch(_){}
+    var g0=pGeom(),sx=e.clientX,sy=e.clientY;
+    function mv(e2){
+      var dx=e2.clientX-sx,dy=e2.clientY-sy,d=pDock();
+      var x=g0.x,y=g0.y,w=g0.w,h=g0.h;
+      if(dir.indexOf('e')>=0)w=g0.w+dx;
+      if(dir.indexOf('w')>=0)w=g0.w-dx;
+      if(dir.indexOf('s')>=0)h=g0.h+dy;
+      if(dir.indexOf('n')>=0)h=g0.h-dy;
+      w=Math.max(480,Math.min(w,d.w));h=Math.max(360,Math.min(h,d.h));
+      if(dir.indexOf('w')>=0)x=g0.x+(g0.w-w);
+      if(dir.indexOf('n')>=0)y=g0.y+(g0.h-h);
+      x=Math.max(d.x,Math.min(x,d.x+d.w-120));y=Math.max(d.y,Math.min(y,d.y+d.h-60));
+      pStoreGeom({x:x,y:y,w:w,h:h});
+    }
+    function up(){el.classList.remove('on');window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up)}
+    window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);
+  });
+});
+pmoveEl.addEventListener('pointerdown',function(e){
+  if(!SET.movePanels)return;
+  e.preventDefault();e.stopPropagation();
+  try{pmoveEl.setPointerCapture(e.pointerId)}catch(_){}
+  var g0=pGeom(),sx=e.clientX,sy=e.clientY;
+  function mv(e2){
+    var d=pDock();
+    var x=Math.max(d.x,Math.min(g0.x+e2.clientX-sx,d.x+d.w-120));
+    var y=Math.max(d.y,Math.min(g0.y+e2.clientY-sy,d.y+d.h-60));
+    pStoreGeom({x:x,y:y,w:g0.w,h:g0.h});
+  }
+  function up(){window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up)}
+  window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);
+});
+window.addEventListener('resize',applyPanel);
 setLoad();
-drawSettings();applySet();
+drawSettings();applySet();applyPanel();
 })();
 
 </script>
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-014';
+window.__MOOR_LIVE_VER='20260925-015';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
