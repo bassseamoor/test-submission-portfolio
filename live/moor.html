@@ -172,8 +172,19 @@ input:focus,select:focus{border-color:var(--accent)}
 .app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;padding:16px 20px 24px}
 .app{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:16px 8px 12px;text-align:center;cursor:pointer;color:var(--text)}
 .app:hover{border-color:var(--border2);background:rgba(255,255,255,.05)}
-.app .ai{font-size:26px;line-height:1}
-.app b{display:block;font-size:11px;margin-top:9px;font-weight:650}
+.app .ai{font-size:26px;line-height:1;display:grid;place-items:center;width:52px;height:52px;margin:0 auto;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07)}
+.app b{display:block;font-size:11px;margin-top:10px;font-weight:650}
+.app .acat{display:none;font-size:10px;color:var(--faint);margin-top:3px;text-transform:capitalize}
+.app .go{display:none;color:var(--faint);font-size:15px;margin-left:auto}
+.app-grid.list{grid-template-columns:1fr;gap:8px}
+.app-grid.list .app{display:flex;align-items:center;gap:14px;text-align:left;padding:11px 14px}
+.app-grid.list .app .ai{margin:0;width:42px;height:42px;font-size:22px;border-radius:12px;flex:none}
+.app-grid.list .app .txt{flex:1;min-width:0}
+.app-grid.list .app b{margin:0;font-size:13px}
+.app-grid.list .app .acat{display:block}
+.app-grid.list .app .go{display:block}
+.app-grid.list .app .planned-tag{margin:0 0 0 8px;flex:none}
+.app-grid.list .app-sec{padding:8px 2px 0}
 .app-sec{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:10px 2px 0}
 .app-note{grid-column:1/-1;font-size:12px;color:var(--muted);padding:0 2px}
 .app.planned{cursor:default;opacity:.62}
@@ -475,8 +486,8 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
       <div class="panel-head">
         <div><h2>Apps</h2><p>Everything you need. Nothing you don't.</p></div>
         <div class="sp"></div>
-        <button class="iconbtn on" title="Grid">▦</button>
-        <button class="iconbtn" title="List">☰</button>
+        <button class="iconbtn on" title="Grid" data-aview="grid">▦</button>
+        <button class="iconbtn" title="List" data-aview="list">☰</button>
         <button class="xbtn" data-go="home" title="Close">✕</button>
       </div>
       <div class="app-tabs" id="appTabs">
@@ -2270,7 +2281,7 @@ var appGrid=$('#appGrid'),appF='all';
 function appTile(a,planned){
   var d=planned?document.createElement('div'):document.createElement('button');
   d.className='app'+(planned?' planned':'');
-  d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><b>'+esc(a[0])+'</b>'+(planned?'<span class="planned-tag">PLANNED</span>':'');
+  d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><span class="txt"><b>'+esc(a[0])+'</b><span class="acat">'+esc(a[3])+'</span></span>'+(planned?'<span class="planned-tag">PLANNED</span>':'<span class="go">→</span>');
   if(!planned)d.addEventListener('click',function(){openApp(a[0])});
   else d.title=a[0]+' is planned — not built yet.';
   return d;
@@ -2290,7 +2301,7 @@ function drawApps(){
     appGrid.appendChild(note);
     planned.forEach(function(a){appGrid.appendChild(appTile(a,true))});
     var add=document.createElement('div');add.className='app planned';
-    add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><b>Add App</b><span class="planned-tag">PLANNED</span>';
+    add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><span class="txt"><b>Add App</b></span><span class="planned-tag">PLANNED</span>';
     add.title='An app library is planned — not built yet.';
     appGrid.appendChild(add);
   }
@@ -2303,6 +2314,13 @@ $$('#appTabs button').forEach(function(b){b.addEventListener('click',function(){
   if(b.dataset.f==='add'){toast('Custom tabs are planned — not available yet.');return}
   $$('#appTabs button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');appF=b.dataset.f;drawApps();
 })});
+/* apps grid/list view toggle */
+var appView='grid';
+function setAppView(v){
+  appView=v;appGrid.classList.toggle('list',v==='list');
+  $$('#view-apps .panel-head .iconbtn').forEach(function(x){x.classList.toggle('on',x.dataset.aview===v)});
+}
+$$('#view-apps .panel-head .iconbtn').forEach(function(b){b.addEventListener('click',function(){setAppView(b.dataset.aview||'grid')})});
 drawApps();
 /* ---------- settings ---------- */
 var SET_NAV=[['Appearance','◐'],['Workspaces','⧉'],['Apps','▦'],['Files','▤'],['System','🖥'],['Devices','📱'],['Network','⌁'],['Shortcuts','⌨'],['AI & Agents','✦'],['Sync & Backup','⤴'],['Advanced','⚙'],['About','ⓘ']];
@@ -2375,7 +2393,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-002';
+window.__MOOR_LIVE_VER='20260925-003';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
