@@ -47,8 +47,8 @@ body.light .aurora{opacity:.35}
 /* main views */
 main{position:fixed;z-index:10;overflow:auto;padding:26px 34px 90px}
 main.floating{background:var(--panel);border:1px solid var(--border2);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
-.ph{position:fixed;z-index:60;touch-action:none;opacity:0;transition:opacity .12s;border-radius:4px}
-.ph:hover,.ph.on{opacity:1;background:var(--accent)}
+.ph{position:fixed;z-index:60;touch-action:none;opacity:0;transition:opacity .15s}
+.ph:hover,.ph.on{opacity:.38;background:var(--border2)}
 .ph.n,.ph.s{cursor:ns-resize}.ph.e,.ph.w{cursor:ew-resize}
 .ph.ne,.ph.sw{cursor:nesw-resize}.ph.nw,.ph.se{cursor:nwse-resize}
 .pmove{position:fixed;z-index:61;width:56px;height:12px;border-radius:7px;background:var(--border2);opacity:0;pointer-events:none;transition:opacity .15s,background .15s;cursor:move}
@@ -1812,8 +1812,10 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 var toastT=null;
 function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},2600)}
 /* ---------- view switching ---------- */
-function go(v){document.body.dataset.view=v;$$('.rail button').forEach(function(b){b.classList.toggle('on',b.dataset.go===v)});window.scrollTo(0,0);var m=$('main');if(m)m.scrollTop=0}
-$$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.go)})});
+function go(v){document.body.dataset.view=v;$$('.rail button').forEach(function(b){b.classList.toggle('on',b.dataset.go===v)});window.scrollTo(0,0);var m=$('main');if(m)m.scrollTop=0;applyPanel()}
+function hidePanel(){document.body.dataset.view='none';$$('.rail button').forEach(function(b){b.classList.remove('on')});applyPanel()}
+$$('.rail button[data-go]').forEach(function(b){b.addEventListener('click',function(){if(document.body.dataset.view===b.dataset.go)hidePanel();else go(b.dataset.go)})});
+$$('[data-go]').forEach(function(b){if(b.closest('.rail'))return;b.addEventListener('click',function(){go(b.dataset.go)})});
 /* visible search bar (exact shell-bar design): it DRIVES the command palette —
    typing opens the palette (if closed) and live-filters it; Enter runs the top
    hit; Esc closes and clears; arrows move the highlight. Typing also mirrors
@@ -2798,7 +2800,7 @@ function getWidgetsNode(){ // built once; setMain re-appends the same node so in
 /* ---------- settings ---------- */
 var SET_NAV=[['Appearance','◐'],['Widgets','⊞'],['Workspaces','⧉'],['Apps','▦'],['Files','▤'],['System','🖥'],['Devices','📱'],['Network','⌁'],['Shortcuts','⌨'],['AI & Agents','✦'],['Sync & Backup','⤴'],['Advanced','⚙'],['About','ⓘ']];
 var ACCENTS=[['Green','#c5eaa5','rgba(197,234,165,.13)'],['Blue','#7fb2e5','rgba(127,178,229,.13)'],['Purple','#b79fe5','rgba(183,159,229,.13)'],['Pink','#e58bb1','rgba(229,139,177,.13)'],['Orange','#e5a87f','rgba(229,168,127,.13)'],['Yellow','#e5d97f','rgba(229,217,127,.13)'],['Gray','#93a197','rgba(147,161,151,.16)']];
-var DEF={theme:'dark',accent:0,bg:'dynamic',blur:40,scale:100,style:'rounded',anim:true,motion:false,movePanels:false,panel:null};
+var DEF={theme:'dark',accent:0,bg:'dynamic',blur:40,scale:100,style:'rounded',anim:true,motion:false,movePanels:true,panel:null};
 var SET=JSON.parse(JSON.stringify(DEF));
 var SET_KEY='moor.settings.v1';
 function setSave(){try{localStorage.setItem(SET_KEY,JSON.stringify(SET))}catch(e){}}
@@ -3062,6 +3064,8 @@ function pDock(){return {x:pRailW(),y:pTopH(),w:window.innerWidth-pRailW(),h:win
 function pDocked(g){var d=pDock();return Math.abs(g.x-d.x)<2&&Math.abs(g.y-d.y)<2&&Math.abs(g.w-d.w)<2&&Math.abs(g.h-d.h)<2}
 function pGeom(){return SET.panel?{x:SET.panel.x,y:SET.panel.y,w:SET.panel.w,h:SET.panel.h}:pDock()}
 function applyPanel(){
+  var hidden=document.body.dataset.view==='none';
+  moorMain.style.display=hidden?'none':'';
   var g=pGeom(),d=pDock();
   if(SET.panel){ /* clamp to viewport */
     g.w=Math.max(480,Math.min(g.w,d.w));g.h=Math.max(360,Math.min(g.h,d.h));
@@ -3080,8 +3084,10 @@ function applyPanel(){
     var hx=Math.max(0,Math.min(q[0],window.innerWidth-8)),hy=Math.max(0,Math.min(q[1],window.innerHeight-8));
     el.style.left=hx+'px';el.style.top=hy+'px';
     el.style.width=Math.max(8,Math.min(q[2],window.innerWidth-hx))+'px';
-    el.style.height=Math.max(8,Math.min(q[3],window.innerHeight-hy))+'px'});
-  pmoveEl.classList.toggle('show',!!SET.movePanels);
+    el.style.height=Math.max(8,Math.min(q[3],window.innerHeight-hy))+'px';
+    el.style.display=hidden?'none':''});
+  pmoveEl.classList.toggle('show',!!SET.movePanels&&!hidden);
+  pmoveEl.style.display=hidden?'none':'';
   pmoveEl.style.left=(g.x+g.w/2-28)+'px';pmoveEl.style.top=(g.y+5)+'px';
 }
 function pStoreGeom(g){
@@ -3134,7 +3140,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-021';
+window.__MOOR_LIVE_VER='20260925-022';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
