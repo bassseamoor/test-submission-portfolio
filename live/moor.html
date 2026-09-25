@@ -349,7 +349,6 @@ input[type=text],input[type=search],select{border-radius:12px;background:rgba(25
 input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,137,223,.18)}
 /* segmented pills stay pill-shaped */
 .proj-switch button{border-radius:999px}
-.cp-launch button{border-radius:999px}
 /* aquarium docs: tighter headings, kicker tables */
 .aq-doc h1{letter-spacing:-.02em;font-weight:800}
 .aq-doc h2{letter-spacing:-.01em;font-weight:750}
@@ -411,15 +410,6 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,1
 .top-right{min-width:0}
 .top-right .tbtn{white-space:nowrap;flex-shrink:0}
 .top-right .avatar{flex-shrink:0}
-/* production launcher: pinned bottom-left; z-index above every served-only layer
-   (the shell's #cb overlay sits at z-index 100) so the pills are never covered */
-.cp-launch{position:fixed;left:22px;bottom:20px;z-index:5000;display:flex;align-items:center;gap:8px}
-.cp-launch button{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;white-space:nowrap}
-.cp-launch button.cp-primary{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
-.cp-launch #moorProductionStatus{font-size:10px;color:var(--faint)}
-/* production drawer: inlined from production/moor-production.css as belt-and-braces
-   (the drawer also requests moor-production.css from the local server) */
-.cp-launch{position:fixed;left:18px;bottom:18px;z-index:9500;display:flex;gap:7px;align-items:center;padding:7px;border:1px solid #394340;border-radius:16px;background:#121917;color:#edf6ef;box-shadow:0 8px 30px #0006;font:13px/1.4 system-ui}.cp-launch button,.cp-drawer button,.cp-connect button{border:1px solid #3a4941;border-radius:10px;padding:10px 15px;background:#202c25;color:#edf6ef;font:600 13px/1.4 system-ui;cursor:pointer}.cp-launch .cp-primary{background:#c5eaa5;color:#14200e}.cp-launch #moorProductionStatus:empty{display:none}.cp-launch #moorProductionStatus{max-width:270px;font-size:11px}.cp-drawer,.cp-drawer *{box-sizing:border-box}.cp-drawer{position:fixed;inset:0;z-index:1000000;background:#0009;display:grid;place-items:center;padding:24px;font:14px/1.5 system-ui;color:#edf4ef}.cp-drawer-panel{width:min(100%,1000px);max-height:90dvh;overflow:auto;background:#111916;border:1px solid #35483b;border-radius:24px;padding:30px;box-shadow:0 24px 90px #0008}.cp-drawer header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.cp-drawer h2{font:600 34px/1.1 system-ui;margin:7px 0}.cp-drawer small{font:600 10px system-ui;letter-spacing:2px;color:#abc49f}.cp-drawer p{color:#a7b6ad;margin:10px 0 20px}.cp-drawer input{width:100%;border:1px solid #405248;border-radius:12px;padding:14px;background:#1b2721;color:#f1f5ef;font:14px system-ui}.cp-filters{display:flex;gap:6px;overflow:auto;margin:16px 0}.cp-filters button{white-space:nowrap}.cp-filters button[aria-pressed=true]{background:#c5eaa5;color:#17230f}.cp-app-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}.cp-app{display:flex;flex-direction:column;border:1px solid #34473a;border-radius:15px;background:#1b2620;overflow:hidden}.cp-app .cp-app-open{display:grid;align-content:start;text-align:left;border:0;background:none;padding:17px;flex:1;gap:8px}.cp-app-open strong{font-size:16px}.cp-app-open p{font-weight:400;font-size:12px;margin:0;line-height:1.6}.cp-app-icon{display:grid;place-items:center;background:#314b36;color:#c5eaa5;width:34px;height:34px;border-radius:10px;font-size:17px}.cp-app-actions{display:flex;justify-content:space-between;padding:0 12px 12px}.cp-app-actions button{padding:5px 10px;font-size:11px;background:transparent}.cp-app-actions button[aria-pressed=true]{color:#cfedb3}.cp-empty{grid-column:1/-1;padding:24px}.cp-drawer button:hover,.cp-launch button:hover{filter:brightness(1.18)}.cp-drawer :focus-visible,.cp-launch :focus-visible,.cp-connect :focus-visible{outline:2px solid #c5eaa5;outline-offset:3px}.cp-production-window .cui-window-body{padding:0!important;min-height:0;overflow:hidden!important;display:flex;flex-direction:column}.cp-production-frame{width:100%;height:100%;flex:1;border:0;background:#101213;min-height:0}.cp-connect{padding:35px;font:14px/1.6 system-ui;color:#e8efe8}.cp-connect h2{font-size:26px}.cp-connect p{color:#a6b6a9;max-width:64ch}.cp-connect .cp-detail{font-size:12px}@media(max-width:780px){.cp-app-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-drawer-panel{padding:20px}}@media(max-width:500px){.cp-drawer{padding:10px}.cp-app-grid{grid-template-columns:1fr}.cp-launch{left:10px;bottom:10px}.cp-launch #moorProductionStatus{max-width:140px}}
 /* watermark: clear of content, never colliding */
 .watermark{top:auto;bottom:110px;right:40px;pointer-events:none;z-index:5}
 @media(max-width:1100px){.watermark{display:none}}
@@ -437,7 +427,6 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(75,1
 main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 #newBtn{bottom:84px}
 #newMenu{bottom:128px;right:12px}
-.cp-launch{left:12px;bottom:84px}
 .gbar{margin-bottom:14px}.gin{height:48px;font-size:14px}
 .ccp-backdrop{padding:6vh 12px 12px}
 .brand b{font-size:13px;letter-spacing:.16em}
@@ -1755,125 +1744,6 @@ window.__colonyPalette = {
 
 </script>
 
-<script>
-/* ===== inlined: subsystem:production/colony-production.js ===== */
-/* Additive moor runtime extension. Existing folders, City and UI Maker stay owned by the local runtime. */
-(()=>{
-  'use strict';
-  if(window.moorProduction)return;
-  const SCRIPT=document.currentScript;
-  const BASE=new URL('http://127.0.0.1:39501/production/');
-  const SERVICE='http://127.0.0.1:39520';
-  const PREF='moor.production.drawer.v1',PREF_OLD='colony.production.drawer.v1'; /* rename-safety */
-  const catalogue=[
-    {id:'home',name:'Production desk',group:'Organize',description:'Projects, objectives, tasks and reviewable app versions.',terms:'production project moor work tasks'},
-    {id:'source',name:'Moorbymoore',group:'Create',description:'Edit website source, adjust styles and build a local preview.',terms:'website moorbymoore source code ui site'},
-    {id:'studio',name:'UI Studio',group:'Create',description:'Start a real app, customize its look and export editable source.',terms:'app template starter builder design ui studio'},
-    {id:'environment',name:'Environment Creator',group:'Create',description:'World Forge planning: seeded terrain, planets, roads and architecture.',terms:'environment world forge planet terrain creator'},
-    {id:'board',name:'Production tasks',group:'Organize',description:'Move project work from planning through review.',terms:'tasks board production kanban'},
-    {id:'ui-maker',name:'UI Maker',group:'Create',description:'Open your existing tile and component design tool.',terms:'ui maker mockup tiles layout components'},
-    {id:'model-studio',name:'Model Studio',group:'Create',description:'Open the installed model editor.',terms:'models studio model maker 3d'},
-    {id:'texture-studio',name:'Texture Studio',group:'Create',description:'Paint materials with your existing studio.',terms:'texture material paint studio'},
-    {id:'model-importer',name:'Model Library',group:'Organize',description:'Open the installed model importer and saved models.',terms:'model importer library saved assets'},
-    {id:'city',name:'MOOR City',group:'Play',description:'Open the current installed game.',terms:'city game play moor'},
-    {id:'continuity',name:'Continuity',group:'Organize',description:'Connected projects, source folders and handoffs.',terms:'continuity project sources folder handoff'},
-    {id:'renderer',name:'Render Generator',group:'Create',description:'Open the existing renderer foundry.',terms:'render engine foundry generator'}
-  ];
-  let settings={pinned:['source','studio','environment'],hidden:[]};
-  try{const saved=JSON.parse(window.__moorKV.get(localStorage,PREF_OLD,PREF)||'null');if(saved&&Array.isArray(saved.pinned)&&Array.isArray(saved.hidden))settings={pinned:saved.pinned.filter(id=>catalogue.some(a=>a.id===id)),hidden:saved.hidden.filter(id=>catalogue.some(a=>a.id===id))};}catch{}
-  /* workspace switching swaps the drawer-prefs key underneath this module; re-read on demand. */
-  window.__moorDrawerPrefsReload=function(){try{const saved=JSON.parse(window.__moorKV.get(localStorage,PREF_OLD,PREF)||'null');if(saved&&Array.isArray(saved.pinned)&&Array.isArray(saved.hidden))settings={pinned:saved.pinned.filter(id=>catalogue.some(a=>a.id===id)),hidden:saved.hidden.filter(id=>catalogue.some(a=>a.id===id))};}catch{}};
-  let production=null,frame=null,drawer=null,dirty=false,lastFocus=null,uiPromise=null,requestedView='home';
-  function element(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;}
-  function button(text,action,cls){const b=element('button',text,cls);b.type='button';b.onclick=action;return b;}
-  function persist(){try{window.__moorKV.set(localStorage,PREF_OLD,PREF,JSON.stringify(settings));}catch{showNotice('Drawer preferences could not be saved in this browser.');}}
-  function showNotice(text){const ui=window.COLONYUI||document.__COLONYUI;if(ui)ui.notify(text);else document.getElementById('moorProductionStatus').textContent=text;}
-  async function ui(){
-    if(window.COLONYUI||document.__COLONYUI)return window.COLONYUI||document.__COLONYUI;
-    if(!uiPromise)uiPromise=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL('../update/moor-ui-system.js',BASE);s.onload=()=>{const found=window.COLONYUI||document.__COLONYUI;if(found)resolve(found);else reject(Error('moor window system is unavailable.'));};s.onerror=()=>reject(Error('moor window system could not load.'));document.head.append(s);}).catch(e=>{uiPromise=null;throw e;});
-    return uiPromise;
-  }
-  const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('moor-production.css',BASE);document.head.append(css);
-  function focusables(node){return [...node.querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&!n.hidden);}
-  function closeDrawer(){if(!drawer)return;drawer.remove();drawer=null;lastFocus?.focus();}
-  function openDrawer(){
-    if(drawer){closeDrawer();return;}
-    lastFocus=document.activeElement;
-    drawer=element('section',null,'cp-drawer');drawer.setAttribute('role','dialog');drawer.setAttribute('aria-modal','true');drawer.setAttribute('aria-label','moor apps');
-    const panel=element('div',null,'cp-drawer-panel');
-    const header=element('header');const copy=element('div');copy.append(element('small','moor / YOUR TOOLS'),element('h2','Apps'),element('p','Find a tool. Pin what you use. Keep building.'));
-    const close=button('Close',closeDrawer);header.append(copy,close);
-    const search=element('input');search.type='search';search.placeholder='Find an app or something to do…';search.setAttribute('aria-label','Search moor apps');
-    const tabs=element('nav',null,'cp-filters');tabs.setAttribute('aria-label','App categories');
-    const manage=button('Manage drawer',()=>{managing=!managing;manage.textContent=managing?'Done organizing':'Manage drawer';render();});
-    const grid=element('div',null,'cp-app-grid');let category='All',managing=false;
-    function render(){
-      tabs.replaceChildren();for(const name of ['All','Pinned','Create','Organize','Play']){const b=button(name,()=>{category=name;render();});b.setAttribute('aria-pressed',String(category===name));tabs.append(b);}
-      const terms=search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
-      const apps=catalogue.filter(a=>(managing||!settings.hidden.includes(a.id))&&(category==='All'||category==='Pinned'&&settings.pinned.includes(a.id)||category===a.group)&&terms.every(q=>(a.name+' '+a.terms+' '+a.description).toLowerCase().includes(q)));
-      grid.replaceChildren();
-      for(const app of apps){
-        const card=element('article',null,'cp-app');card.dataset.app=app.id;
-        const main=button('',()=>{closeDrawer();void open(app.id);},'cp-app-open');main.append(element('span',app.name[0],'cp-app-icon'),element('strong',app.name),element('p',app.description));
-        const actions=element('div',null,'cp-app-actions');const pin=button(settings.pinned.includes(app.id)?'Pinned':'Pin',()=>{settings.pinned=settings.pinned.includes(app.id)?settings.pinned.filter(id=>id!==app.id):[...settings.pinned,app.id];persist();render();});pin.setAttribute('aria-label',(settings.pinned.includes(app.id)?'Unpin ':'Pin ')+app.name);pin.setAttribute('aria-pressed',String(settings.pinned.includes(app.id)));actions.append(pin);
-        if(managing)actions.append(button(settings.hidden.includes(app.id)?'Show':'Hide',()=>{settings.hidden=settings.hidden.includes(app.id)?settings.hidden.filter(id=>id!==app.id):[...settings.hidden,app.id];persist();render();}));
-        card.append(main,actions);grid.append(card);
-      }
-      if(!apps.length)grid.append(element('p','No matching apps. Try another search or category.','cp-empty'));
-    }
-    search.oninput=render;panel.append(header,search,tabs,grid,manage);drawer.append(panel);document.body.append(drawer);drawer.onclick=e=>{if(e.target===drawer)closeDrawer();};
-    drawer.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeDrawer();}if(e.key==='Tab'){const f=focusables(panel),first=f[0],last=f.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};render();search.focus();
-  }
-  async function openProduction(view){
-    requestedView=view;
-    const windows=await ui();
-    if(production?.element.isConnected&&frame){production.restore().focus();frame.contentWindow?.postMessage({type:'colony:open-tool',view},SERVICE);return;}
-    if(production?.element.isConnected&&!frame){production.restore().focus();return;}
-    const content=element('div',null,'cp-connect');content.append(element('h2','Opening your production tools…'),element('p','Connecting Moorbymoore and your app workspace.'));
-    production=windows.window({id:'colony-production',title:'MOOR Production',className:'cp-production-window',width:'calc(100vw - 28px)',height:'calc(100dvh - 100px)',top:'76px',content:[content],onClose(){production=null;frame=null;dirty=false;}});
-    const currentWindow=production;
-    currentWindow.element.addEventListener('click',e=>{if(dirty&&e.target.closest('[aria-label="Close"]')&&!window.confirm('You have unsaved source edits. Close and discard them?')){e.preventDefault();e.stopImmediatePropagation();}},true);
-    try{
-      const response=await fetch(SERVICE+'/api/health',{signal:AbortSignal.timeout(2500)});if(!response.ok)throw Error('The editing service did not respond.');const health=await response.json();
-      if(health.api!=='COLONYProduction/0.3.0'||health.colonyOrigin!==location.origin)throw Error('The expected moor editing service is not running.');
-      if(production!==currentWindow||!currentWindow.element.isConnected)return;
-      frame=element('iframe');frame.title='MOOR Production tools';frame.src=SERVICE+'/?embedded=1&view='+encodeURIComponent(requestedView);frame.allow='clipboard-write';frame.className='cp-production-frame';currentWindow.body.replaceChildren(frame);
-    }catch(e){
-      if(production!==currentWindow)return;content.replaceChildren(element('h2','Editing service needs to start'),element('p','Close and reopen moor using your normal desktop shortcut. The production tools start with it.'),element('p',String(e.message),'cp-detail'),button('Try again',()=>{currentWindow.close();void openProduction(view);}));
-    }
-  }
-  async function open(id){
-    try{
-      if(['home','source','studio','environment','board','review','releases'].includes(id))return await openProduction(id);
-      if(id==='ui-maker'){if(window.COLONYUIMaker)return window.COLONYUIMaker.open();document.dispatchEvent(new CustomEvent('colony-ui-maker-open'));return;}
-      if(['model-studio','texture-studio','model-importer'].includes(id)){if(window.MOORStudios)return window.MOORStudios.open(id);throw Error('The installed Model Studios have not loaded yet.');}
-      const action={city:'openMoorCity',renderer:'openRenderer',continuity:'openContinuity'}[id];const __rb=window.moorRuntimeBridge||window.COLONYRuntimeBridge;if(action&&__rb?.[action])return __rb[action]();
-      throw Error('This tool is not available in the installed moor version.');
-    }catch(e){showNotice(e.message);}
-  }
-  window.addEventListener('message',e=>{if(e.origin!==SERVICE||e.source!==frame?.contentWindow)return;if(e.data?.type==='colony:source-dirty')dirty=e.data.dirty===true;if(e.data?.type==='colony:ready')frame.contentWindow.postMessage({type:'colony:open-tool',view:requestedView},SERVICE);});
-  window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
-  // One stable launcher is available even while the existing search shell loads.
-  const launch=element('nav',null,'cp-launch');launch.setAttribute('aria-label','moor production tools');launch.append(button('Apps',openDrawer),button('Production',()=>void open('home'),'cp-primary'));
-  const status=element('span');status.id='moorProductionStatus';status.setAttribute('role','status');launch.append(status);document.body.append(launch);
-  function search(){
-    if(!document?.body)return;
-    const input=document.querySelector('#cb .cbin'),results=document.querySelector('#cb .cbres');if(!input||!results)return;
-    if(!input.dataset.cpSearch){input.dataset.cpSearch='1';input.addEventListener('input',()=>queueMicrotask(search));input.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const first=results.querySelector('[data-cp-results] button');if(first){e.preventDefault();e.stopImmediatePropagation();first.click();}},true);}
-    const q=input.value.trim().toLowerCase();let list=results.querySelector('[data-cp-results]');
-    if(!q){list?.remove();return;}
-    const matches=catalogue.filter(a=>!settings.hidden.includes(a.id)&&q.split(/\s+/).every(t=>(a.name+' '+a.terms).toLowerCase().includes(t))).slice(0,5);
-    if(!matches.length){list?.remove();return;}
-    const key=matches.map(a=>a.id).join('|');if(list?.dataset.key===key)return;
-    if(!list){list=element('div');list.dataset.cpResults='';results.prepend(list);}list.dataset.key=key;list.replaceChildren();
-    for(const app of matches){const b=button('',()=>{input.value='';results.classList.remove('on');results.replaceChildren();void open(app.id);},'cbr');const copy=element('span');copy.append(element('b',app.name),element('small',app.description));b.append(copy,element('i','APP'));b.onmousedown=e=>e.preventDefault();list.append(b);}results.classList.add('on');
-  }
-  let queued=false;const searchObserver=new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;search();});});searchObserver.observe(document.body,{childList:true,subtree:true});window.addEventListener('pagehide',()=>searchObserver.disconnect());
-  window.moorProduction=Object.freeze({version:'0.3.0',apps:catalogue.map(a=>({...a})),open,openDrawer});
-})();
-
-</script>
-
 <script>/* ===== data: aquarium catalog (extracted from ui:workspace block 5) ===== */
 /* Pure data. No imports, no side effects beyond registering window.__colonyData. */
 window.__colonyData = window.__colonyData || {};
@@ -2263,7 +2133,6 @@ function wsApplyState(st){
   try{window.__moorKV.set(localStorage,WS_RECENTS_OLD,WS_RECENTS,JSON.stringify(st.recents||[]))}catch(e){}
   try{window.__moorKV.set(localStorage,WS_DRAWER_OLD,WS_DRAWER,JSON.stringify(st.drawer||{pinned:[],hidden:[]}))}catch(e){}
   if(window.__moorPaletteRecentsReload)try{window.__moorPaletteRecentsReload()}catch(e){}
-  if(window.__moorDrawerPrefsReload)try{window.__moorDrawerPrefsReload()}catch(e){}
   wsRenderRecents(st.recents||[]);
 }
 function wsRenderRecents(recents){
@@ -2413,7 +2282,7 @@ drawWs();
 /* ---------- apps ---------- */
 var APPS=[
  ['MOOR City','🎮','#e5b87f','worlds',1],['Settings','⚙','#93a197','dev',1],
- ['Render Studio','⬢','#7fd6c2','create',1],['cit','▮','#b79fe5','worlds',0],
+ ['Render Studio','⬢','#7fd6c2','create',1],['Moorbymoore','◈','#8fb4f0','create',1],['cit','▮','#b79fe5','worlds',0],
  ['moor','📁','#e58bb1','worlds',0],['con','📁','#7fb2e5','worlds',0],['Assets','⧉','#7fd6c2','worlds',0],
  ['Scene Generator','✳','#9fe07f','create',0],['Material Lab','◔','#b79fe5','create',0],['Texture Tools','▦','#b79fe5','create',0],
  ['Video Tools','▶','#e58bb1','media',0],['Audio Lab','♫','#b79fe5','media',0],['AI Assistant','✦','#7fb2e5','tools',0],
@@ -2516,7 +2385,8 @@ document.addEventListener('keydown',function(e){
 /* App URL registry: any app listed here opens INSIDE moor by default.
    When someone makes an app, add its URL here and it opens in a moor window — no new tab. */
 var APP_URLS={
-  'Render Studio':'https://bassseamoor.github.io/render-queue/'
+  'Render Studio':'https://bassseamoor.github.io/render-queue/',
+  'Moorbymoore':'http://127.0.0.1:39520/?embedded=1&view=source'
 };
 function openApp(name){
   if(name==='Settings'){go('settings');return}
@@ -2988,7 +2858,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-012';
+window.__MOOR_LIVE_VER='20260925-013';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
