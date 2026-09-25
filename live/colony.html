@@ -512,6 +512,66 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 </div>
 <div id="toast" hidden></div>
 
+<script>/* ===== boot: rename-safety (20260924-008) =====
+ * Runs before every other subsystem (first entry in seams.json). Two jobs:
+ *
+ *  1. STORAGE-KEY MIGRATION: every known `colony.*` key is copied to its
+ *     `moor.*` counterpart (then the old key is removed). Runs once at boot.
+ *     Subsystem reads/writes below use window.__moorKV (new-first,
+ *     old-fallback), so no data is lost in either direction even if a key
+ *     is written after this migration ran.
+ *
+ *  2. BRIDGE-NAME CANONICALIZATION: the local runtime may provide the
+ *     bridge as window.COLONYRuntimeBridge (old) or window.moorRuntimeBridge
+ *     (new). Whichever exists at boot, both names are pointed at the same
+ *     object. Consumption sites ALSO fall back at call time
+ *     (window.moorRuntimeBridge||window.COLONYRuntimeBridge), so a bridge
+ *     defined later by an async-loaded update script still resolves.
+ */
+(()=>{'use strict';
+
+/* new-first, old-fallback key/value access shared by the subsystems below */
+window.__moorKV={
+  get:function(store,oldK,newK){
+    try{
+      var v=store.getItem(newK);
+      return v===null?store.getItem(oldK):v;
+    }catch(e){return null;}
+  },
+  set:function(store,oldK,newK,val){
+    try{
+      store.setItem(newK,String(val));
+      try{store.removeItem(oldK);}catch(e){}
+    }catch(e){}
+  }
+};
+
+/* colony.* -> moor.* : copy value, then remove the old key (never the reverse order) */
+var MIGRATE=[
+  ['colony.command-palette.recents.v1','moor.command-palette.recents.v1','local'],
+  ['colony.production.drawer.v1','moor.production.drawer.v1','local'],
+  ['colony.auto-update-attempt.v1','moor.auto-update-attempt.v1','session']
+];
+for(var i=0;i<MIGRATE.length;i++){
+  (function(oldK,newK,which){
+    try{
+      var store=(which==='local')?localStorage:sessionStorage;
+      if(store.getItem(newK)===null){
+        var v=store.getItem(oldK);
+        if(v!==null){store.setItem(newK,v);store.removeItem(oldK);}
+      }
+    }catch(e){/* storage unavailable: leave keys untouched */}
+  })(MIGRATE[i][0],MIGRATE[i][1],MIGRATE[i][2]);
+}
+
+/* bridge aliases: canonical window.moorRuntimeBridge, legacy window.COLONYRuntimeBridge */
+try{
+  var rb=window.moorRuntimeBridge||window.COLONYRuntimeBridge||null;
+  if(rb){window.moorRuntimeBridge=rb;window.COLONYRuntimeBridge=rb;}
+}catch(e){}
+})();
+</script>
+
 <script>
 /* ===== inlined: subsystem:continuity/colony-continuity.js ===== */
 (()=>{
@@ -629,7 +689,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
       project.lastEnvironment={
         deviceId:nodeStatus.device?.id||null,
         deviceName:nodeStatus.device?.name||null,
-        runtimeUrl:window.COLONYRuntimeBridge?.getRuntimeUrl?.()||'http://127.0.0.1:39501/moor-city/index.html',
+        runtimeUrl:(window.moorRuntimeBridge||window.COLONYRuntimeBridge)?.getRuntimeUrl?.()||'http://127.0.0.1:39501/moor-city/index.html',
         client:'COLONY',
         capturedAt:now()
       };
@@ -861,8 +921,8 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
         const input=body.querySelector('#ctQuickNote');const text=input?.value.trim();if(!text)return;
         const p=activeProject();p.notes=p.notes||[];p.notes.push({id:'note-'+Date.now(),text,createdAt:now(),source:'manual'});if(p.notes.length>100)p.notes=p.notes.slice(-100);input.value='';await saveActiveCapsule(false);toast('Added to project context');render();
       }
-      if(action==='open-moor')window.COLONYRuntimeBridge?.openMoorCity?.();
-      if(action==='open-chatgpt')window.COLONYRuntimeBridge?.openChatGPT?.()||window.open('https://chatgpt.com/','_blank','noopener,noreferrer');
+      if(action==='open-moor')(window.moorRuntimeBridge||window.COLONYRuntimeBridge)?.openMoorCity?.();
+      if(action==='open-chatgpt')(window.moorRuntimeBridge||window.COLONYRuntimeBridge)?.openChatGPT?.()||window.open('https://chatgpt.com/','_blank','noopener,noreferrer');
       if(action==='pick-folder')await pickFolder();
       if(action==='typed-folder')await typedFolder();
       if(action==='refresh-node'){await refreshNode();render();toast('Local Node refreshed')}
@@ -949,7 +1009,9 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
     if(input){input.value=String(query||'');if(input.value.trim())await runSearch()}
   }
 
-  window.COLONYContinuity={
+  /* rename-safety (20260924-008): window.moorContinuity is canonical;
+     window.COLONYContinuity stays as a legacy alias to the same object. */
+  window.moorContinuity={
     version:CLIENT_VERSION,
     open,
     search:openSearch,
@@ -962,6 +1024,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
     refresh:refreshNode,
     save:()=>saveActiveCapsule(false)
   };
+  window.COLONYContinuity=window.moorContinuity; /* legacy alias (rename-safety) */
 
   window.addEventListener('message',e=>{
     if(e.origin!==location.origin)return;
@@ -988,15 +1051,28 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
 const LEGACY_BLOCKED=[/colony-search-suggestions\.js$/];
 const load=(src,label)=>{if(LEGACY_BLOCKED.some(rx=>rx.test(src))){console.warn('[COLONY] blocked legacy module (conflicting asset): '+(label||src));return Promise.resolve();}
 return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.crossOrigin='anonymous';s.onload=resolve;s.onerror=()=>reject(new Error(label+' failed to load'));document.head.appendChild(s)})};
-load('http://127.0.0.1:39501/update/colony-ui-system.js','COLONY UI system')
+/* ===== rename-safety (20260924-008): dual-path local loads =====
+ * The PC runtime is being renamed colony-* -> moor-*. Each local script is
+ * tried as moor-*.js FIRST, falling back to colony-*.js, so this bundle keeps
+ * working whether the PC's update/ files are already renamed or not.
+ * ARCHITECTURE NOTE: this bundle INLINES the updater chain — it does NOT
+ * fetch the PC's update/colony-updater.js (or moor-updater.js) entry file, so
+ * the dual-pathing is applied here, per script. Do NOT "simplify" this into
+ * loading the PC entry file: its internal chain still requests
+ * colony-search-suggestions.js, which v30.4 deliberately removed (it rendered
+ * a conflicting second suggestion dropdown). LEGACY_BLOCKED above keeps
+ * refusing that file under either name. */
+const LOCAL_RT='http://127.0.0.1:39501/update/';
+const loadDual=(moorFile,colonyFile,label)=>load(LOCAL_RT+moorFile,label+' [moor]').catch(()=>load(LOCAL_RT+colonyFile,label+' [colony]'));
+loadDual('moor-ui-system.js','colony-ui-system.js','COLONY UI system')
 .catch(err=>console.error('[COLONY UI system]',err));
-load('http://127.0.0.1:39501/update/colony-tile-maker.js','UI Maker')
+loadDual('moor-tile-maker.js','colony-tile-maker.js','UI Maker')
 .catch(err=>console.error('[COLONY UI Maker]',err));
 /* v30.4 REMOVED: legacy server-side search-suggestions rendered a second,
    conflicting suggestion dropdown over the new UI's home search (served-only
    code path — invisible to file:// testing). The workspace UI owns suggestions
    now; LEGACY_BLOCKED above also refuses it if anything requests it again. */
-load('http://127.0.0.1:39501/update/colony-shell.js','COLONY shell')
+loadDual('moor-shell.js','colony-shell.js','COLONY shell')
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@eeac436da2ba9959709c27210fb730e50941c940/releases/30.1.0/update/colony-request-capture.js','City request capture'))
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@929be65b80317f5ae49560e0ef15a4a9aafafe80/releases/31.0.0/update/colony-mgg.js','MOOR Generator Generator'))
 .then(()=>load('https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@ecb769b6875d594679833e5debce93a65c690531/releases/31.1.0/update/colony-renderer-tournament.js','Renderer Tournament'))
@@ -1018,8 +1094,8 @@ window.addEventListener('colony-update-status',event=>{
   if(!status.available||status.error||autoApplying)return;
   const target=String(status.latestVersion||'').trim();
   if(!target||!window.COLONYUpdater?.apply)return;
-  const key='colony.auto-update-attempt.v1';
-  try{if(sessionStorage.getItem(key)===target)return;sessionStorage.setItem(key,target)}catch{}
+  const key='moor.auto-update-attempt.v1',keyOld='colony.auto-update-attempt.v1';
+  try{if(window.__moorKV.get(sessionStorage,keyOld,key)===target)return;window.__moorKV.set(sessionStorage,keyOld,key,target)}catch{}
   autoApplying=true;
   setTimeout(()=>{
     Promise.resolve(window.COLONYUpdater.apply()).catch(err=>{
@@ -1096,7 +1172,8 @@ window.addEventListener('colony-update-status',event=>{
 
 const VERSION = '1.1.0';
 const ROOT_ID = 'colony-command-palette-root';
-const RECENT_KEY = 'colony.command-palette.recents.v1';
+const RECENT_KEY = 'moor.command-palette.recents.v1';
+const RECENT_KEY_OLD = 'colony.command-palette.recents.v1'; /* rename-safety */
 const MAX_RECENT = 8;
 
 /* ---------- singleton guard: no duplicate mounts, no duplicate listeners ---------- */
@@ -1204,12 +1281,12 @@ function scoreRow(query, row) {
 
 function loadRecent() {
   try {
-    const arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    const arr = JSON.parse(window.__moorKV.get(localStorage,RECENT_KEY_OLD,RECENT_KEY) || '[]');
     return Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : [];
   } catch { return []; }
 }
 function saveRecent(ids) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, MAX_RECENT))); } catch { /* private mode */ }
+  try { window.__moorKV.set(localStorage,RECENT_KEY_OLD,RECENT_KEY,JSON.stringify(ids.slice(0, MAX_RECENT))); } catch { /* private mode */ }
 }
 
 /* ---------- state ---------- */
@@ -1481,7 +1558,7 @@ window.__colonyPalette = {
   const SCRIPT=document.currentScript;
   const BASE=new URL('http://127.0.0.1:39501/production/');
   const SERVICE='http://127.0.0.1:39520';
-  const PREF='colony.production.drawer.v1';
+  const PREF='moor.production.drawer.v1',PREF_OLD='colony.production.drawer.v1'; /* rename-safety */
   const catalogue=[
     {id:'home',name:'Production desk',group:'Organize',description:'Projects, objectives, tasks and reviewable app versions.',terms:'production project moor work tasks'},
     {id:'source',name:'Moorbymoore',group:'Create',description:'Edit website source, adjust styles and build a local preview.',terms:'website moorbymoore source code ui site'},
@@ -1497,11 +1574,11 @@ window.__colonyPalette = {
     {id:'renderer',name:'Render Generator',group:'Create',description:'Open the existing renderer foundry.',terms:'render engine foundry generator'}
   ];
   let settings={pinned:['source','studio','environment'],hidden:[]};
-  try{const saved=JSON.parse(localStorage.getItem(PREF)||'null');if(saved&&Array.isArray(saved.pinned)&&Array.isArray(saved.hidden))settings={pinned:saved.pinned.filter(id=>catalogue.some(a=>a.id===id)),hidden:saved.hidden.filter(id=>catalogue.some(a=>a.id===id))};}catch{}
+  try{const saved=JSON.parse(window.__moorKV.get(localStorage,PREF_OLD,PREF)||'null');if(saved&&Array.isArray(saved.pinned)&&Array.isArray(saved.hidden))settings={pinned:saved.pinned.filter(id=>catalogue.some(a=>a.id===id)),hidden:saved.hidden.filter(id=>catalogue.some(a=>a.id===id))};}catch{}
   let production=null,frame=null,drawer=null,dirty=false,lastFocus=null,uiPromise=null,requestedView='home';
   function element(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;}
   function button(text,action,cls){const b=element('button',text,cls);b.type='button';b.onclick=action;return b;}
-  function persist(){try{localStorage.setItem(PREF,JSON.stringify(settings));}catch{showNotice('Drawer preferences could not be saved in this browser.');}}
+  function persist(){try{window.__moorKV.set(localStorage,PREF_OLD,PREF,JSON.stringify(settings));}catch{showNotice('Drawer preferences could not be saved in this browser.');}}
   function showNotice(text){const ui=window.COLONYUI||document.__COLONYUI;if(ui)ui.notify(text);else document.getElementById('colonyProductionStatus').textContent=text;}
   async function ui(){
     if(window.COLONYUI||document.__COLONYUI)return window.COLONYUI||document.__COLONYUI;
@@ -1562,7 +1639,7 @@ window.__colonyPalette = {
       if(['home','source','studio','environment','board','review','releases'].includes(id))return await openProduction(id);
       if(id==='ui-maker'){if(window.COLONYUIMaker)return window.COLONYUIMaker.open();document.dispatchEvent(new CustomEvent('colony-ui-maker-open'));return;}
       if(['model-studio','texture-studio','model-importer'].includes(id)){if(window.MOORStudios)return window.MOORStudios.open(id);throw Error('The installed Model Studios have not loaded yet.');}
-      const action={city:'openMoorCity',renderer:'openRenderer',continuity:'openContinuity'}[id];if(action&&window.COLONYRuntimeBridge?.[action])return window.COLONYRuntimeBridge[action]();
+      const action={city:'openMoorCity',renderer:'openRenderer',continuity:'openContinuity'}[id];const __rb=window.moorRuntimeBridge||window.COLONYRuntimeBridge;if(action&&__rb?.[action])return __rb[action]();
       throw Error('This tool is not available in the installed moor version.');
     }catch(e){showNotice(e.message);}
   }
@@ -1663,7 +1740,7 @@ $$('.recent-row').forEach(function(b){b.addEventListener('click',function(){
 /* ---------- continuity ---------- */
 var cbtn=$('#continuityBtn');
 if(cbtn)cbtn.addEventListener('click',function(){
-  if(window.COLONYContinuity&&window.COLONYContinuity.open)window.COLONYContinuity.open();
+  var __cc=window.moorContinuity||window.COLONYContinuity;if(__cc&&__cc.open)__cc.open();
   else toast('Continuity is still loading…');
 });
 /* ---------- new menu ---------- */
@@ -1948,7 +2025,7 @@ drawSettings();applySet();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__COLONY_LIVE_VER='20260924-007';
+window.__COLONY_LIVE_VER='20260924-008';
 (function(){setInterval(function(){
   fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/colony-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.ok?r.text():''})
