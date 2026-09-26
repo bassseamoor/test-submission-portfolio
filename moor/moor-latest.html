@@ -2274,7 +2274,7 @@ function freezePage0(pr){
   }
   var missing=pages.filter(function(p){return p.status==='missing'}).map(function(p){return{key:p.key,title:p.title}});
   var canon=JSON.stringify(pages.map(function(p){return[p.key,p.title,p.text,p.provenance,p.status]}));
-  return{packet:2,funnel:'v42',workflow:'golden',project:pr.name,planKind:pr.kind,
+  return{packet:2,funnel:'v43',workflow:'golden',project:pr.name,planKind:pr.kind,
     frozenAt:new Date().toISOString(),hash:djb2(canon),
     page0:'Frozen blueprint. The funnel never recomputes, re-distills, or re-parses this.',
     pages:pages,missing:missing,conflicts:[],
@@ -3713,7 +3713,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater (relay v2) ===== */
-window.__MOOR_LIVE_VER='20260926-011';
+window.__MOOR_LIVE_VER='20260926-012';
 (function(){
   // Relay v2: same connections as v1 (VER_URL + first two bundle URLs untouched,
   // same 90s cadence, same document-swap). Changes are append-only:
