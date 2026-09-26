@@ -270,7 +270,6 @@ input:focus,select:focus{border-color:var(--accent)}
 .plan-picker{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:thin}
 .plan-picker button{flex:none;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
 .plan-picker button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.plan-doc{border:1px solid var(--border);border-radius:12px}
 .app.planned:hover{transform:none}
 .app .planned-tag{display:inline-block;margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--faint);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
 /* settings */
@@ -575,7 +574,10 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
           </div>
           <div id="planProj" hidden>
             <div class="plan-picker" id="planPicker"></div>
-            <div class="aq-doc plan-doc" id="planDoc"></div>
+            <div class="aq-wrap">
+              <div class="aq-side" id="planSide"></div>
+              <div class="aq-doc" id="planDoc"></div>
+            </div>
           </div>
         </div>
         <div class="proj-detail" id="projDetail"></div>
@@ -2059,7 +2061,16 @@ function projTab(which){
 }
 function showMoor(){projTab('folders');var c=$('#crumbProj');if(c)c.textContent='Folders'}
 function showAq(){projTab('aquarium');var c=$('#crumbProj');if(c)c.textContent='Aquarium';if(!aqBuilt){buildAq();aqBuilt=true}}
-var planBuilt=false,planCur=null;
+var planBuilt=false,planCur=null,planSections=[];
+function parsePlan(txt){
+  var secs=[{key:'overview',title:'Overview',body:''}],cur=secs[0];
+  String(txt).split('\n').forEach(function(L){
+    var m=L.match(/^## (\d+)\.\s*(.*)/);
+    if(m){cur={key:m[1],title:m[1]+'. '+m[2],body:''};secs.push(cur)}
+    cur.body+=L+'\n';
+  });
+  return secs;
+}
 function buildPlanPicker(){
   var plans=(window.__moorData&&window.__moorData.projectPlans)||{};
   var pk=$('#planPicker');if(!pk)return;pk.innerHTML='';
@@ -2068,6 +2079,26 @@ function buildPlanPicker(){
     b.addEventListener('click',function(){openPlan(name)});pk.appendChild(b);
   });
 }
+function buildPlanSide(){
+  var side=$('#planSide');if(!side)return;side.innerHTML='';
+  var groups=[['The plan',['overview','1','2','3','4','5','6','7','8','9','10']],['Technical',['11']],['Provenance',['12']]];
+  groups.forEach(function(g){
+    var h=document.createElement('h4');h.textContent=g[0];side.appendChild(h);
+    g[1].forEach(function(key){
+      var sec=null;planSections.forEach(function(x){if(x.key===key)sec=x});
+      if(!sec)return;
+      var b=document.createElement('button');b.textContent=sec.title;b.dataset.sec=key;
+      b.addEventListener('click',function(){showPlanSection(key)});side.appendChild(b);
+    });
+  });
+}
+function showPlanSection(key){
+  var sec=null;planSections.forEach(function(x){if(x.key===key)sec=x});
+  if(!sec)sec=planSections[0];
+  if(!sec)return;
+  $$('#planSide button').forEach(function(b){b.classList.toggle('on',b.dataset.sec===sec.key)});
+  var d=$('#planDoc');if(d){d.innerHTML=md(sec.body);d.scrollTop=0}
+}
 function openPlan(name){
   var plans=(window.__moorData&&window.__moorData.projectPlans)||{};
   var keys=Object.keys(plans);
@@ -2075,7 +2106,9 @@ function openPlan(name){
   if(!name)return;
   planCur=name;
   $$('#planPicker button').forEach(function(b){b.classList.toggle('on',b.dataset.plan===name)});
-  var d=$('#planDoc');if(d){d.innerHTML=md(plans[name]);d.scrollTop=0}
+  planSections=parsePlan(plans[name]);
+  buildPlanSide();
+  showPlanSection('overview');
   var c=$('#crumbProj');if(c)c.textContent='Plans \u203a '+name;
 }
 function showPlans(name){
@@ -3205,7 +3238,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260926-005';
+window.__MOOR_LIVE_VER='20260926-006';
 (function(){
   var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
   var BUNDLE_URLS=[
