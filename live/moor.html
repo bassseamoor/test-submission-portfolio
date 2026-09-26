@@ -3507,14 +3507,24 @@ drawSettings();applySet();applyPanel();
 </script>
 
 <script>
-/* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260926-009';
+/* ===== inlined: ui:live-updater (relay v2) ===== */
+window.__MOOR_LIVE_VER='20260926-010';
 (function(){
+  // Relay v2: same connections as v1 (VER_URL + first two bundle URLs untouched,
+  // same 90s cadence, same document-swap). Changes are append-only:
+  //  - third bundle fallback (live/moor.html on raw)
+  //  - honest retry status instead of silent give-up
+  // Release-side atomicity (bundle verified on ALL download URLs before
+  // version.txt flips) is enforced by the release pipeline; this client
+  // only ever has to survive CDN lag, not a missing bundle.
   var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
   var BUNDLE_URLS=[
     'https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@moor-updates/moor/moor-latest.html',
-    'https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/moor/moor-latest.html'
+    'https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/moor/moor-latest.html',
+    'https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/moor.html'
   ];
+  var POLL_MS=90000, RETRY_NOTE_AFTER=3;
+  var fails=0, notedFor=null, noteEl=null;
   function fetchText(url){
     return fetch(url+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){
       if(!r.ok) throw new Error('http '+r.status);
@@ -3528,15 +3538,35 @@ window.__MOOR_LIVE_VER='20260926-009';
       return tryBundle(i+1, ver);
     }, function(){ return tryBundle(i+1, ver); });
   }
+  function showNote(ver){
+    if(notedFor===ver) return;
+    notedFor=ver;
+    try{
+      if(noteEl&&noteEl.parentNode) noteEl.parentNode.removeChild(noteEl);
+      var d=document.createElement('div');
+      d.textContent='Update '+ver+' found \u2014 download still reaching the servers, retrying automatically.';
+      d.style.cssText='position:fixed;bottom:18px;left:18px;background:#2b2417;color:#e8d9ae;padding:10px 16px;border-radius:10px;font:14px system-ui,sans-serif;z-index:99999;border:1px solid #6b5d33;max-width:70vw;';
+      if(document.body) document.body.appendChild(d);
+      noteEl=d;
+    }catch(e){}
+  }
+  function clearNote(){
+    notedFor=null;
+    try{ if(noteEl&&noteEl.parentNode) noteEl.parentNode.removeChild(noteEl); }catch(e){}
+    noteEl=null;
+  }
   function check(){
     fetchText(VER_URL).then(function(t){
       t=(t||'').trim();
-      if(t && t!==window.__MOOR_LIVE_VER){
-        tryBundle(0, t).then(function(html){
-          try{ sessionStorage.setItem('moor.justUpdated', t); }catch(e){}
-          document.open(); document.write(html); document.close();
-        }, function(){});
-      }
+      if(!t || t===window.__MOOR_LIVE_VER){ fails=0; clearNote(); return; }
+      tryBundle(0, t).then(function(html){
+        fails=0; clearNote();
+        try{ sessionStorage.setItem('moor.justUpdated', t); }catch(e){}
+        document.open(); document.write(html); document.close();
+      }, function(){
+        fails++;
+        if(fails>=RETRY_NOTE_AFTER) showNote(t);
+      });
     }, function(){});
   }
   try{
@@ -3549,9 +3579,8 @@ window.__MOOR_LIVE_VER='20260926-009';
       setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 6000);
     }
   }catch(e){}
-  setInterval(check, 90000);
+  setInterval(check, POLL_MS);
 })();
-
 </script>
 </body>
 </html>
