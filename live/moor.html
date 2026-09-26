@@ -59,7 +59,6 @@ body[data-view="home"] #view-home{display:block}
 body[data-view="projects"] #view-projects{display:block}
 body[data-view="workspaces"] #view-workspaces{display:block}
 body[data-view="apps"] #view-apps{display:block}
-body[data-view="project"] #view-project{display:block}
 body[data-view="settings"] #view-settings{display:block}
 /* Served-only shell bar (#cb): the local colony-shell.js injects its own <style>
    AFTER our stylesheet loads, so only !important can suppress it. #cb stays in
@@ -268,6 +267,10 @@ input:focus,select:focus{border-color:var(--accent)}
 .app-sec{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:10px 2px 0}
 .app-note{grid-column:1/-1;font-size:12px;color:var(--muted);padding:0 2px}
 .app.planned{cursor:pointer;opacity:.62}
+.plan-picker{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:thin}
+.plan-picker button{flex:none;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
+.plan-picker button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.plan-doc{border:1px solid var(--border);border-radius:12px}
 .app.planned:hover{transform:none}
 .app .planned-tag{display:inline-block;margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--faint);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
 /* settings */
@@ -558,6 +561,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
           <div class="proj-switch">
             <button id="swMoor" class="on">▤ Folders</button>
             <button id="swAq">🐠 Aquarium</button>
+            <button id="swPlans">📋 Plans</button>
           </div>
           <div id="moorProj">
             <div class="folder-grid" id="folderGrid"></div>
@@ -568,6 +572,10 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
               <div class="aq-side" id="aqSide"></div>
               <div class="aq-doc" id="aqDoc"></div>
             </div>
+          </div>
+          <div id="planProj" hidden>
+            <div class="plan-picker" id="planPicker"></div>
+            <div class="aq-doc plan-doc" id="planDoc"></div>
           </div>
         </div>
         <div class="proj-detail" id="projDetail"></div>
@@ -618,18 +626,6 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
       <div class="app-grid" id="appGrid"></div>
     </div>
     <div class="watermark">A CLEAN CANVAS<br>GOES FURTHER.<br><span>— moor</span></div>
-  </section>
-
-  <section class="view" id="view-project" aria-label="Project plan">
-    <div class="panel">
-      <div class="panel-head">
-        <div><h2 id="pjTitle">Project</h2><p id="pjSub">Plan, as it stands.</p></div>
-        <div class="sp"></div>
-        <button class="xbtn" data-go="apps" title="Back to Apps">&#10005;</button>
-      </div>
-      <div class="aq-doc" id="pjDoc" style="max-height:calc(100vh - 230px)"></div>
-    </div>
-    <div class="watermark">PLAN THE WORK.<br>WORK THE PLAN.<br><span>&mdash; moor</span></div>
   </section>
 
   <section class="view" id="view-settings" aria-label="Settings">
@@ -2053,10 +2049,43 @@ function projShowDetail(it){
   if(ob)ob.addEventListener('click',function(){projGo(projPath?projPath+'/'+it.name:it.name)});
 }
 /* ---------- project switch ---------- */
-function showMoor(){$('#moorProj').hidden=false;$('#aqProj').hidden=true;$('#swMoor').classList.add('on');$('#swAq').classList.remove('on')}
-function showAq(){$('#moorProj').hidden=true;$('#aqProj').hidden=false;$('#swMoor').classList.remove('on');$('#swAq').classList.add('on');if(!aqBuilt){buildAq();aqBuilt=true}}
+function projTab(which){
+  $('#moorProj').hidden=which!=='folders';
+  $('#aqProj').hidden=which!=='aquarium';
+  $('#planProj').hidden=which!=='plans';
+  $('#swMoor').classList.toggle('on',which==='folders');
+  $('#swAq').classList.toggle('on',which==='aquarium');
+  $('#swPlans').classList.toggle('on',which==='plans');
+}
+function showMoor(){projTab('folders');var c=$('#crumbProj');if(c)c.textContent='Folders'}
+function showAq(){projTab('aquarium');var c=$('#crumbProj');if(c)c.textContent='Aquarium';if(!aqBuilt){buildAq();aqBuilt=true}}
+var planBuilt=false,planCur=null;
+function buildPlanPicker(){
+  var plans=(window.__moorData&&window.__moorData.projectPlans)||{};
+  var pk=$('#planPicker');if(!pk)return;pk.innerHTML='';
+  Object.keys(plans).forEach(function(name){
+    var b=document.createElement('button');b.textContent=name;b.dataset.plan=name;
+    b.addEventListener('click',function(){openPlan(name)});pk.appendChild(b);
+  });
+}
+function openPlan(name){
+  var plans=(window.__moorData&&window.__moorData.projectPlans)||{};
+  var keys=Object.keys(plans);
+  if(!name||!plans[name])name=keys[0];
+  if(!name)return;
+  planCur=name;
+  $$('#planPicker button').forEach(function(b){b.classList.toggle('on',b.dataset.plan===name)});
+  var d=$('#planDoc');if(d){d.innerHTML=md(plans[name]);d.scrollTop=0}
+  var c=$('#crumbProj');if(c)c.textContent='Plans \u203a '+name;
+}
+function showPlans(name){
+  projTab('plans');
+  if(!planBuilt){buildPlanPicker();planBuilt=true}
+  openPlan(name);
+}
 $('#swMoor').addEventListener('click',showMoor);
 $('#swAq').addEventListener('click',showAq);
+$('#swPlans').addEventListener('click',function(){showPlans()});
 drawProjects();
 /* ---------- projects panel-head: back/forward history, grid/list, refresh, new ---------- */
 (function(){
@@ -2480,13 +2509,8 @@ function openApp(name){
   if(name==='MOOR City'){window.open('http://127.0.0.1:39501/moor-city/index.html','_blank');return}
 }
 function openProject(name){
-  var plans=(window.__moorData&&window.__moorData.projectPlans)||{};
-  var txt=plans[name];
-  var t=$('#pjTitle');if(t)t.textContent=name;
-  var sb=$('#pjSub');if(sb)sb.textContent='Project plan · baked 2026-09-26';
-  var d=$('#pjDoc');
-  if(d){d.innerHTML=txt?md(txt):'<p><i>No plan baked for this project yet.</i></p>';d.scrollTop=0}
-  go('project');
+  go('projects');
+  showPlans(name);
 }
 /* ---------- custom tabs ---------- */
 var BUILTIN_TABS=[['all','All'],['create','Create'],['tools','Tools'],['media','Media'],['dev','Dev']];
@@ -3181,7 +3205,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260926-003';
+window.__MOOR_LIVE_VER='20260926-004';
 (function(){
   var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
   var BUNDLE_URLS=[
