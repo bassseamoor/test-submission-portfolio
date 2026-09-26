@@ -1908,7 +1908,7 @@ $$('[data-go]').forEach(function(b){if(b.closest('.rail'))return;b.addEventListe
     });
   }
   var gdot=$('#gdot');
-  if(gdot)gdot.addEventListener('click',function(e){e.stopPropagation();if(window.COLONYUpdater&&window.COLONYUpdater.open)window.COLONYUpdater.open();else toast('Updates are checked automatically every 90 seconds.')});
+  if(gdot)gdot.addEventListener('click',function(e){e.stopPropagation();if(window.COLONYUpdater&&window.COLONYUpdater.open)window.COLONYUpdater.open();else toast('Updates are checked automatically every minute.')});
 })();
 /* ---------- clock ---------- */
 function tick(){var d=new Date();var ds=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});var ts=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});var c=$('#clock');if(c)c.textContent=ds+' · '+ts}
@@ -3594,8 +3594,12 @@ function drawSettings(){
   if(setCur==='About'){
     setMain.innerHTML='<h3>About</h3><p class="sub">moor \u2014 the open-source harness.</p>'+
       '<div class="set-row"><span>Version</span><b>'+esc(String(window.__MOOR_LIVE_VER||'dev'))+'</b></div>'+
+      '<div class="set-row"><span>Updates</span><span style="display:flex;align-items:center;gap:8px"><small id="moor-update-row" style="max-width:280px">Checking\u2026</small><button id="moor-check-now" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--accent-dim);color:var(--text);cursor:pointer">Check now</button></span></div>'+
       '<div class="set-row"><span>Update feed</span><small style="max-width:300px">bassseamoor/test-submission-portfolio \u00b7 branch moor-updates \u00b7 live/moor.html</small></div>'+
       '<div class="set-row"><span>Source</span><small style="max-width:300px">This file is the whole app. No build step.</small></div>';
+    var __mcb=setMain.querySelector('#moor-check-now');
+    if(__mcb) __mcb.addEventListener('click',function(){ if(window.__moorCheckNow) window.__moorCheckNow(); });
+    try{ var __mur=setMain.querySelector('#moor-update-row'); if(__mur&&window.__moorUpdateStatus) __mur.textContent=window.__moorUpdateStatus().label; }catch(__mue){}
     return;
   }
   if(setCur==='Widgets'){
@@ -3729,25 +3733,45 @@ drawSettings();applySet();applyPanel();
 
 </script>
 
-<script>
-/* ===== inlined: ui:live-updater (relay v2) ===== */
-window.__MOOR_LIVE_VER='20260926-016';
+<script>/* ===== inlined: ui:live-updater (relay v3) ===== */
+window.__MOOR_LIVE_VER='20260926-017';
 (function(){
-  // Relay v2: same connections as v1 (VER_URL + first two bundle URLs untouched,
-  // same 90s cadence, same document-swap). Changes are append-only:
-  //  - third bundle fallback (live/moor.html on raw)
-  //  - honest retry status instead of silent give-up
-  // Release-side atomicity (bundle verified on ALL download URLs before
-  // version.txt flips) is enforced by the release pipeline; this client
-  // only ever has to survive CDN lag, not a missing bundle.
+  // Relay v3: same connections as v2 (VER_URL + three bundle URLs, same document-swap).
+  // Changes vs v2, all append-only:
+  //  - check() runs immediately at startup, then every 60s (was: first check only after 90s)
+  //  - fast retry: update found but bundle download failing -> retry in 15s (up to 4x)
+  //  - honest status API: window.__moorUpdateStatus() / window.__moorCheckNow(), shown in Settings > About
+  //  - a successful swap also refreshes the PC bootstrap cache (localStorage 'moor-live')
   var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
   var BUNDLE_URLS=[
     'https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@moor-updates/moor/moor-latest.html',
     'https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/moor/moor-latest.html',
     'https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/moor.html'
   ];
-  var POLL_MS=90000, RETRY_NOTE_AFTER=3;
-  var fails=0, notedFor=null, noteEl=null;
+  var POLL_MS=60000, FAST_RETRY_MS=15000, MAX_FAST=4, RETRY_NOTE_AFTER=3;
+  var fails=0, fastN=0, busy=false, notedFor=null, noteEl=null;
+  var st={phase:'checking', lastCheck:0, latest:''};
+  function ago(ms){
+    var s=Math.max(0,Math.round(ms/1000));
+    if(s<10) return 'just now';
+    if(s<60) return s+'s ago';
+    return Math.round(s/60)+' min ago';
+  }
+  window.__moorUpdateStatus=function(){
+    var label='Checking\u2026';
+    if(st.phase==='up-to-date') label='Up to date'+(st.lastCheck?(' \u00b7 checked '+ago(Date.now()-st.lastCheck)):'');
+    else if(st.phase==='downloading') label='Update found \u2014 downloading\u2026';
+    else if(st.phase==='retrying') label='Update found \u2014 having trouble downloading, retrying\u2026';
+    else if(st.phase==='feed-unreachable') label='Can\u2019t reach the update feed \u2014 retrying\u2026';
+    return {label:label, phase:st.phase, current:window.__MOOR_LIVE_VER||'', latest:st.latest};
+  };
+  window.__moorCheckNow=function(){ st.phase='checking'; paintRow(); check(); };
+  function paintRow(){
+    try{
+      var el=document.getElementById('moor-update-row');
+      if(el) el.textContent=window.__moorUpdateStatus().label;
+    }catch(e){}
+  }
   function fetchText(url){
     return fetch(url+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){
       if(!r.ok) throw new Error('http '+r.status);
@@ -3761,13 +3785,13 @@ window.__MOOR_LIVE_VER='20260926-016';
       return tryBundle(i+1, ver);
     }, function(){ return tryBundle(i+1, ver); });
   }
-  function showNote(ver){
-    if(notedFor===ver) return;
-    notedFor=ver;
+  function showNote(key, text){
+    if(notedFor===key) return;
+    notedFor=key;
     try{
       if(noteEl&&noteEl.parentNode) noteEl.parentNode.removeChild(noteEl);
       var d=document.createElement('div');
-      d.textContent='Update '+ver+' found \u2014 download still reaching the servers, retrying automatically.';
+      d.textContent=text;
       d.style.cssText='position:fixed;bottom:18px;left:18px;background:#2b2417;color:#e8d9ae;padding:10px 16px;border-radius:10px;font:14px system-ui,sans-serif;z-index:99999;border:1px solid #6b5d33;max-width:70vw;';
       if(document.body) document.body.appendChild(d);
       noteEl=d;
@@ -3778,19 +3802,38 @@ window.__MOOR_LIVE_VER='20260926-016';
     try{ if(noteEl&&noteEl.parentNode) noteEl.parentNode.removeChild(noteEl); }catch(e){}
     noteEl=null;
   }
+  function cacheForBootstrap(ver, bhtml){
+    try{ localStorage.setItem('moor-live', JSON.stringify({ver:ver, html:bhtml})); }catch(e){}
+  }
+  function swap(ver, bhtml){
+    fails=0; fastN=0; clearNote();
+    st.phase='up-to-date'; st.latest=ver;
+    cacheForBootstrap(ver, bhtml);
+    try{ sessionStorage.setItem('moor.justUpdated', ver); }catch(e){}
+    document.open(); document.write(bhtml); document.close();
+  }
   function check(){
+    if(busy) return;
+    busy=true; st.lastCheck=Date.now();
+    if(st.phase!=='retrying') st.phase='checking';
+    paintRow();
     fetchText(VER_URL).then(function(t){
+      busy=false;
       t=(t||'').trim();
-      if(!t || t===window.__MOOR_LIVE_VER){ fails=0; clearNote(); return; }
-      tryBundle(0, t).then(function(html){
-        fails=0; clearNote();
-        try{ sessionStorage.setItem('moor.justUpdated', t); }catch(e){}
-        document.open(); document.write(html); document.close();
-      }, function(){
-        fails++;
-        if(fails>=RETRY_NOTE_AFTER) showNote(t);
+      if(t) st.latest=t;
+      if(!t || t===window.__MOOR_LIVE_VER){ fails=0; fastN=0; st.phase='up-to-date'; clearNote(); paintRow(); return; }
+      st.phase='downloading'; paintRow();
+      tryBundle(0, t).then(function(bhtml){ swap(t, bhtml); }, function(){
+        fails++; fastN++;
+        st.phase='retrying'; paintRow();
+        if(fails>=RETRY_NOTE_AFTER) showNote('bundle','Update '+t+' found \u2014 download still reaching the servers, retrying automatically.');
+        if(fastN<MAX_FAST) setTimeout(check, FAST_RETRY_MS);
       });
-    }, function(){});
+    }, function(){
+      busy=false; fails++;
+      st.phase='feed-unreachable'; paintRow();
+      if(fails>=RETRY_NOTE_AFTER) showNote('feed','Can\u2019t reach the update feed \u2014 will keep retrying automatically.');
+    });
   }
   try{
     var ju=sessionStorage.getItem('moor.justUpdated');
@@ -3802,7 +3845,9 @@ window.__MOOR_LIVE_VER='20260926-016';
       setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 6000);
     }
   }catch(e){}
+  check();
   setInterval(check, POLL_MS);
+  setInterval(paintRow, 10000);
 })();
 </script>
 
