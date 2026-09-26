@@ -2504,6 +2504,7 @@ function openPlanItem(id){
     return;
   }
   var txt=ov?userPlanText(ov):(pr.kind==='baked'?bakedPlans()[pr.name]:userPlanText(uplansLoad()[pr.uid]||{name:pr.name,blanks:{}}));
+  try{window.__evoPlan={id:pr.id,kind:pr.kind,name:pr.name,txt:String(txt)}}catch(e){}
   planSections=parsePlan(txt);
   buildPlanSide();
   showPlanSection('overview');
@@ -3713,7 +3714,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater (relay v2) ===== */
-window.__MOOR_LIVE_VER='20260926-013';
+window.__MOOR_LIVE_VER='20260926-014';
 (function(){
   // Relay v2: same connections as v1 (VER_URL + first two bundle URLs untouched,
   // same 90s cadence, same document-swap). Changes are append-only:
@@ -3785,6 +3786,863 @@ window.__MOOR_LIVE_VER='20260926-013';
     }
   }catch(e){}
   setInterval(check, POLL_MS);
+})();
+</script>
+
+<script>
+/* ===== inlined: evolution loop (under Build) ===== */
+/* ===== Evolution Loop — under Build. Implements moor-build-evolution-loop-prompt.md =====
+   3 funnel archetypes -> criteria packets -> 6 gates -> triage (2 build slots)
+   -> 2 isolated builds -> 5 script checks -> user crowns -> current + ledger.
+   Judgment (quiz answers, build code) comes from EITHER the user's configured
+   AI key OR — the default — a copy button: the app spits out the exact prompt,
+   the user pastes it into any AI chat they like, pastes the answer back.
+   Never fakes judgment. Plain language throughout. */
+(function(){
+"use strict";
+/* ---------- guarded storage (never throws) ---------- */
+var EVO_KEY='moor.evolution.v1';
+var evoMem={};
+var evoStore={
+  get:function(k){try{var v=localStorage.getItem(k);return v==null?(evoMem[k]||null):v}catch(e){return evoMem[k]||null}},
+  set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}try{evoMem[k]=v}catch(e){}},
+  del:function(k){try{localStorage.removeItem(k)}catch(e){}try{delete evoMem[k]}catch(e){}}
+};
+function evoEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function evoHash(s){var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h+s.charCodeAt(i))|0}return(h>>>0).toString(36)}
+function evoUid(p){return p+Date.now().toString(36)+Math.floor(Math.random()*46656).toString(36)}
+function evoToast(m){try{if(typeof toast==='function'){toast(m);return}}catch(e){}var t=document.getElementById('evoToast');if(!t){t=document.createElement('div');t.id='evoToast';t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#1c2436;border:1px solid #7c5cff;color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:600;z-index:99999;display:none';document.body.appendChild(t)}t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},2400)}
+function evoCopy(text,btn){
+  function done(ok){evoToast(ok?'Copied — paste it into any AI chat you use.':'Copy failed — select the text by hand.')}
+  function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done(true)}catch(e){done(false)}try{ta.remove()}catch(e){}}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){done(true)},fallback)}else fallback();
+}
+
+/* ---------- quiz data (adapted from evolution-engine-v3 prototype) ---------- */
+var EVO_QUESTIONS=[
+ {id:'kind',q:'What are we building?',opts:['A mobile app|Something I carry and tap','A web app|Runs in the browser, nothing to install','A game|Interactive, win/lose, fun first','A handy tool|Does one job extremely well'],auto:3},
+ {id:'game_kind',cond:{qid:'kind',is:'A game'},q:'What kind of game?',opts:['Arcade action|Fast reflexes, high scores','Puzzle & strategy|Think first, then act','Story & exploration|A world to get lost in','Party & multiplayer|Better with friends'],auto:0},
+ {id:'game_session',cond:{qid:'kind',is:'A game'},q:'How long is one session?',opts:['2-minute bursts|Pick up, put down','20-minute runs|One good sitting','Hours-long epics|Settle in'],auto:1},
+ {id:'app_use',cond:{qid:'kind',is:['A mobile app','A web app']},q:'How does it fit into a day?',opts:['Check in daily|Part of the routine','Open when needed|There when it counts','It notifies me|Taps my shoulder first'],auto:0},
+ {id:'tool_trigger',cond:{qid:'kind',is:'A handy tool'},q:'What triggers its use?',opts:['Daily habit|Same time, every day','When a problem hits|Rescue mode','Scheduled reminders|It keeps the rhythm'],auto:0},
+ {id:'who',q:'Who is it for?',opts:['Just me|Built exactly how I like it','Friends & family|People I actually know','The public|Strangers on the internet','A niche community|People obsessed with one thing'],auto:0},
+ {id:'who_find',condNot:{qid:'kind',is:'Just me'},q:'How do they find it?',opts:['Word of mouth|People tell people','App store|Search and discover','A link I send|Hand-delivered'],auto:2},
+ {id:'core',q:'The ONE thing it must do brilliantly?',open:true,seeds:['Track something every day','Make something beautiful','Save me real time','Teach me something hard'],auto:2},
+ {id:'feel',q:'How should it feel to use?',opts:['Fast & minimal|No waiting, no clutter','Rich & playful|Delight in every tap','Calm & quiet|Gets out of the way','Bold & striking|Impossible to ignore'],auto:0},
+ {id:'layout',q:'How should it be laid out?',opts:['Flow|One step at a time, in order','Cards|A grid of tappable cards','Tabs|Sections across the top','Dashboard|Everything visible at once','Chat|Talk to it like a conversation'],auto:0},
+ {id:'platform',q:'Where does it live?',opts:['Phone-first|iPhone in my pocket','Desktop|Big screen, keyboard','Both|Start phone, expand later','One offline file|No server, no internet, forever'],auto:3},
+ {id:'name',q:'What should we call it?',genName:true,auto:0},
+ {id:'never',q:'One thing it must NEVER do?',opts:['Lose my data|My stuff is sacred','Need the internet|Works on a plane','Show ads|Never, ever','Be confusing|If I have to think, it failed'],auto:0}
+];
+var EVO_PROFILES=[
+ {id:'diamond',name:'Diamond',arch:'quality-first',color:'#b7a6ff',
+  run:{order:null,follow:true,fill:'crosscheck',conflict:'hold',compress:'strict'},
+  blurb:'Asks everything, double-checks every answer against the task. Slow but thorough.',
+  prompt:'You are Diamond, a quality-first quiz funnel. Read the task carefully, then answer every question below. Fill by cross-check: for each choice question, pick the option whose words overlap most with the task; ties go to the marked default. For the open question, restate the task in one sentence. If an answer conflicts with the task, the TASK wins — override the answer and say so. Nothing invented, nothing from outside the task.'},
+ {id:'sprint',name:'Sprint',arch:'speed-first',color:'#4da3ff',
+  run:{order:['kind','core','layout','platform'],follow:false,fill:'quick',conflict:'flag',compress:'loose'},
+  blurb:'Four questions, fastest honest answers. No follow-ups.',
+  prompt:'You are Sprint, a speed-first quiz funnel. Answer ONLY these four questions: kind, core, layout, platform. Fill each instantly with the most obvious honest answer for the task — no cross-checking, no follow-ups. If something conflicts with the task, note it but keep moving. Fast and honest beats perfect.'},
+ {id:'vault',name:'Vault',arch:'safety-first',color:'#3ddc84',
+  run:{order:['never','core','kind','who','layout','platform'],follow:'risk',fill:'safe',conflict:'hold',compress:'strict'},
+  blurb:'Constraints first. Never loses data, prefers offline.',
+  prompt:'You are Vault, a safety-first quiz funnel. Answer in this order: never, core, kind, who, layout, platform. "never" is always "Lose my data" unless the task says otherwise; if the task hints at offline, platform is "One offline file". Only answer follow-ups when the task involves money, sharing, or going live. If an answer conflicts with the task, the TASK wins — override and say so. Safety first, always.'},
+ {id:'wildcard',name:'Wildcard',arch:'creativity-first',color:'#ffb020',
+  run:{order:['kind','core','layout','feel','platform'],follow:false,fill:'novel',conflict:'freeze',compress:'loose'},
+  blurb:'Lateral angles. Deliberately off-default answers.',
+  prompt:'You are Wildcard, a creativity-first quiz funnel. Answer: kind, core, layout, feel, platform. Fill laterally: deliberately pick two steps past the obvious default — the interesting answer, not the safe one. For the open question, cross-pollinate: borrow an angle from a completely different domain. If an answer conflicts with the task, keep BOTH side by side and say so. Show the weird options.'},
+ {id:'closer',name:'Closer',arch:'closing-first',color:'#ff7ab8',
+  run:{order:['kind','core','layout','who','never','platform'],follow:'trial',fill:'quick',conflict:'option',compress:'medium'},
+  blurb:'Outcome-framed. Every answer points at the result.',
+  prompt:'You are Closer, a closing-first quiz funnel. Answer in momentum order: kind, core, layout, who, never, platform. Fill with the most obvious honest answer, and frame every answer around the outcome it delivers. If an answer conflicts with the task, take the task\'s side and frame it as "prefer A or B?". End with a one-line summary of what gets built.'}
+];
+var EVO_DOMKW={
+ 'food & cooking':['food','cook','recipe','meal','eat','restaurant','kitchen'],
+ 'home & DIY':['home','repair','fix','house','furniture','garden','renovat'],
+ 'business & money':['money','business','invest','budget','startup','price','sell'],
+ 'health & fitness':['health','workout','fitness','run','diet','sleep','gym','exercise'],
+ 'travel & local':['travel','trip','flight','hotel','city','map','vacation'],
+ 'tech & code':['code','software','bug','server','data','ai','program'],
+ 'creative':['art','photo','music','draw','design','video','write','film'],
+ 'learning & study':['learn','study','school','course','exam','language'],
+ 'relationships':['friend','family','dat','love','team','community'],
+ 'science & nature':['science','nature','plant','animal','space','weather'],
+ 'life logistics':['schedul','calendar','todo','organiz','email','task','remind'],
+ 'shopping & products':['buy','shop','product','review','deal','store'],
+ 'big questions':['meaning','philosophy','purpose','why ','life '],
+ 'games & craft':['game','play','player','fun','score','level','craft']
+};
+var EVO_DOMAIN_ROUTE={
+ 'business & money':['vault','closer','diamond'],
+ 'games & craft':['wildcard','diamond','sprint'],
+ 'food & cooking':['wildcard','sprint','diamond'],
+ 'health & fitness':['diamond','vault','sprint'],
+ 'travel & local':['wildcard','diamond','vault'],
+ 'learning & study':['diamond','sprint','vault'],
+ 'tech & code':['diamond','sprint','closer'],
+ 'home & DIY':['vault','diamond','sprint'],
+ 'science & nature':['diamond','wildcard','vault'],
+ 'relationships':['diamond','vault','closer'],
+ 'creative':['wildcard','diamond','closer'],
+ 'shopping & products':['closer','diamond','sprint'],
+ 'big questions':['diamond','wildcard','vault'],
+ 'life logistics':['vault','diamond','closer'],
+ 'wildcards':['diamond','sprint','closer'],
+ 'default':['diamond','sprint','closer']
+};
+var EVO_DONE=['renders with zero errors','every locked piece present and usable','no placeholder content anywhere','provenance marked on every answer','builds identically with zero human answers'];
+var EVO_BUILD_SLOTS=2;
+var EVO_STOP={with:1,from:1,that:1,this:1,have:1,will:1,would:1,should:1,could:1,then:1,than:1,when:1,what:1,where:1,which:1,your:1,about:1,into:1,them:1,they:1,there:1,make:1,will:1,and:1,for:1,are:1};
+var EVO_P=evoProf;
+function evoProf(id){for(var i=0;i<EVO_PROFILES.length;i++)if(EVO_PROFILES[i].id===id)return EVO_PROFILES[i];return null}
+
+/* ---------- ledger ---------- */
+var EVO_REG=null;
+function evoLoadReg(){try{var r=evoStore.get(EVO_KEY);if(r){EVO_REG=JSON.parse(r);return}}catch(e){}EVO_REG={entries:[],log:[],current:{},builds:[]};evoSaveReg()}
+function evoSaveReg(){try{evoStore.set(EVO_KEY,JSON.stringify(EVO_REG))}catch(e){}}
+function evoLeader(contextId){
+  var best=null;
+  if(!EVO_REG)return null;
+  (EVO_REG.entries||[]).forEach(function(e){
+    if(e.context!==contextId||!(e.runs>=1))return;
+    var w=e.wins/e.runs;
+    if(!best||w>best.w||(w===best.w&&e.runs>best.runs))best={pid:e.funnel_id,w:w,runs:e.runs};
+  });
+  return best?best.pid:null;
+}
+
+/* ---------- routing ---------- */
+function evoDetectDomain(text){var t=' '+(text||'').toLowerCase()+' ';var best='wildcards',bn=0;for(var d in EVO_DOMKW){var n=0;EVO_DOMKW[d].forEach(function(k){if(t.indexOf(k)>=0)n++});if(n>bn){bn=n;best=d}}return best}
+function evoRoute(domain,contextId){
+  var triple=(EVO_DOMAIN_ROUTE[domain]||EVO_DOMAIN_ROUTE['default']).slice();
+  var leader=evoLeader(contextId),why='domain fit — no winner crowned yet in this context';
+  if(leader){
+    if(triple.indexOf(leader)>=0){triple=[leader].concat(triple.filter(function(id){return id!==leader}));why='context leader '+evoProf(leader).name+' moves first (best win rate here)'}
+    else{triple[2]=leader;why='context leader '+evoProf(leader).name+' takes the third slot (best win rate here)'}
+  }
+  return{fids:triple,why:why,domain:domain};
+}
+
+/* ---------- deterministic quiz runner (quick auto-fill path) ---------- */
+function evoAnsMap(a){var m={};a.forEach(function(x){m[x.id]=x.text});return m}
+function evoApplicable(Q,am){
+  if(Q.cond){var v=am[Q.cond.qid];if(v===undefined)return false;return Array.isArray(Q.cond.is)?Q.cond.is.indexOf(v)>=0:v===Q.cond.is}
+  if(Q.condNot){var w=am[Q.condNot.qid];if(w===undefined)return true;return Array.isArray(Q.condNot.is)?Q.condNot.is.indexOf(w)<0:w!==Q.condNot.is}
+  return true}
+function evoSmartAuto(Q,am){return(Q.auto||0)%((Q.opts||[]).length||1)}
+function evoTaskWords(task){return String(task||'').toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>3})}
+function evoOptIndex(Q,am,strategy,task){
+  var n=Q.opts.length,smart=evoSmartAuto(Q,am);
+  if(strategy==='quick')return smart;
+  if(strategy==='crosscheck'){var words=evoTaskWords(task),best=smart,bs=-1;
+    Q.opts.forEach(function(o,ix){var t=o.toLowerCase(),s=0;words.forEach(function(w){if(t.indexOf(w)>=0)s++});if(s>bs){bs=s;best=ix}});return best}
+  if(strategy==='safe'){
+    if(Q.id==='never'){var ix=Q.opts.findIndex(function(o){return o.indexOf('Lose my data')===0});return ix>=0?ix:smart}
+    if(Q.id==='platform'&&/offline|no internet|plane/.test(String(task).toLowerCase())){var jx=Q.opts.findIndex(function(o){return o.indexOf('One offline file')===0});return jx>=0?jx:smart}
+    return smart}
+  if(strategy==='novel')return(smart+2)%n;
+  return smart}
+function evoOpenFill(Q,am,strategy,task){
+  if(Q.genName){var words=String(task||'').replace(/[^a-zA-Z ]/g,'').split(/\s+/).filter(function(w){return w.length>2});return(words.slice(0,2).join(' ')||'Nova')}
+  if(Q.id==='core'){var t=String(task||'').trim();if(t.length>8)return t.length>90?t.slice(0,90):t}
+  return Q.seeds[evoSmartAuto(Q,am)%Q.seeds.length]}
+function evoDetectConflicts(task,answers){
+  var t=' '+String(task).toLowerCase()+' ',out=[];
+  function get(id){for(var i=0;i<answers.length;i++)if(answers[i].id===id)return answers[i].text;return ''}
+  if(/offline|no internet|\bplane\b/.test(t)&&get('platform')&&get('platform')!=='One offline file')
+    out.push({id:'platform',fill:get('platform'),want:'One offline file',why:'task says offline'});
+  if(/no ads|without ads|ad-free/.test(t)&&get('never')&&get('never')!=='Show ads')
+    out.push({id:'never',fill:get('never'),want:'Show ads',why:'task says no ads'});
+  return out}
+function evoRunFunnel(pid,task){
+  var p=evoProf(pid),R=p.run,answers=[],conflicts=[];
+  var order=R.order||EVO_QUESTIONS.map(function(q){return q.id});
+  var am=evoAnsMap(answers);
+  order.forEach(function(qid){
+    var Q=null;EVO_QUESTIONS.forEach(function(q){if(q.id===qid)Q=q});if(!Q)return;
+    if(!evoApplicable(Q,am))return;
+    if(Q.cond&&R.follow===false)return;
+    if(Q.cond&&R.follow==='risk'&&!/money|pay|shar|live|publish|send|checkout|store/.test(String(task).toLowerCase()))return;
+    var text;
+    if(Q.genName)text=evoOpenFill(Q,am,R.fill,task);
+    else if(Q.open)text=evoOpenFill(Q,am,R.fill,task);
+    else text=Q.opts[evoOptIndex(Q,am,R.fill,task)].split('|')[0];
+    answers.push({id:Q.id,text:text,by:'filled',via:'auto-fill'});
+    am[Q.id]=text;
+  });
+  evoDetectConflicts(task,answers).forEach(function(c){
+    var a=null;answers.forEach(function(x){if(x.id===c.id)a=x});
+    if(R.conflict==='flag')conflicts.push({id:c.id,why:c.why,action:'noted — kept: '+c.fill});
+    else if(R.conflict==='hold'){a.text=c.want;a.held=true;conflicts.push({id:c.id,why:c.why,action:'task wins — changed to: '+c.want})}
+    else if(R.conflict==='freeze')conflicts.push({id:c.id,why:c.why,action:'kept both: '+c.fill+' / '+c.want});
+    else if(R.conflict==='option'){a.text=c.want;conflicts.push({id:c.id,why:c.why,action:'task side taken: '+c.want})}
+  });
+  var keep=R.compress==='loose'?['kind','core','layout','platform']:answers.map(function(a){return a.id});
+  var spec={};answers.forEach(function(a){if(keep.indexOf(a.id)>=0)spec[a.id]=a.text});
+  var packet={spec:spec,destination:'one self-contained HTML file',doneCriteria:(R.compress==='loose'?EVO_DONE.slice(0,3):EVO_DONE.slice()),answers:answers.map(function(a){return{id:a.id,text:a.text,by:a.by,via:a.via}})};
+  if(R.compress==='medium')packet.summary='Summary: '+answers.length+' answers locked, '+conflicts.length+' conflicts closed. Build it.';
+  var checks=evoPacketChecks(packet,task);
+  return{pid:pid,packet:packet,answers:answers,conflicts:conflicts,
+    stats:{asked:answers.length,conflicts:conflicts.length},
+    passRate:checks.filter(function(c){return c[1]}).length/checks.length,checks:checks};
+}
+
+/* ---------- the 6 packet gates (never weakened) ---------- */
+function evoSpecAnswersTask(packet,task){
+  var keys=String(task||'').toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>3&&!EVO_STOP[w]});
+  if(keys.length<2)return true;
+  var specText=Object.keys(packet.spec).map(function(k){return packet.spec[k]}).join(' ').toLowerCase();
+  return keys.some(function(k){return specText.indexOf(k)>=0})}
+function evoPacketChecks(pk,task){
+  return[
+   ['plan is not empty',pk&&pk.spec&&Object.keys(pk.spec).length>0],
+   ['has a destination',!!(pk&&pk.destination)],
+   ['at least 3 done-checks',(pk&&pk.doneCriteria||[]).length>=3],
+   ['done-checks are checkable (short)',(pk&&pk.doneCriteria||[]).every(function(x){return String(x).length<=140})],
+   ['every answer marked with who filled it',(pk&&pk.answers||[]).every(function(a){return !!a.by})],
+   ['plan actually answers the task',evoSpecAnswersTask(pk,task)]]}
+
+/* ---------- triage ---------- */
+function evoCoverage(r,task){
+  var words=evoTaskWords(task).filter(function(w){return !EVO_STOP[w]});
+  var specText=Object.keys(r.packet.spec).map(function(k){return r.packet.spec[k]}).join(' ').toLowerCase();
+  return words.filter(function(w){return specText.indexOf(w)>=0}).length}
+function evoTriage(results,task){
+  function cov(r){return evoCoverage(r,task)}
+  var sorted=results.slice().sort(function(a,b){return b.passRate-a.passRate||cov(b)-cov(a)||a.stats.conflicts-b.stats.conflicts||a.stats.asked-b.stats.asked});
+  return sorted.map(function(r,i){
+    if(r.passRate<1)return{pid:r.pid,verdict:'FAIL',why:'a plan check failed — it does not advance'};
+    if(i<EVO_BUILD_SLOTS)return{pid:r.pid,verdict:'PASS',why:'read the blueprint best — earns one of the '+EVO_BUILD_SLOTS+' build slots'};
+    return{pid:r.pid,verdict:'HOLD',why:'passed the checks, but the build slots are full'};
+  })}
+
+/* ---------- prompts for the copy button (self-contained for any AI chat) ---------- */
+function evoQuizQuestionsText(){
+  return EVO_QUESTIONS.filter(function(q){return !q.cond}).map(function(q){
+    if(q.genName)return 'Q: name — What should we call it? (give a short name)';
+    if(q.open)return 'Q: core — The ONE thing it must do brilliantly? (one sentence, restate the task below)';
+    return 'Q: '+q.id+' — '+q.q+' Choose one: '+q.opts.map(function(o){return o.split('|')[0]}).join(' / ');
+  }).join('\n')}
+function evoFunnelPrompt(pid,task,context){
+  var p=evoProf(pid);
+  return p.prompt+'\n\nTHE TASK (frozen — answer it, never change it):\n'+task+
+   '\n\nBACKGROUND (read-only):\n'+context+
+   '\n\nQUESTIONS:\n'+evoQuizQuestionsText()+
+   '\n\nRETURN JSON ONLY — no explanations, no markdown fences, just the JSON:\n'+
+   '{\n  "spec": {"kind": "...", "core": "...", "layout": "...", "platform": "...", "feel": "...", "who": "...", "never": "..."},\n'+
+   '  "destination": "one self-contained HTML file",\n'+
+   '  "doneCriteria": ["check 1 (under 140 chars)", "check 2", "check 3"],\n'+
+   '  "answers": [{"id": "kind", "text": "..."}, {"id": "core", "text": "..."}]\n}'+
+   '\nRules: every answer must serve the task; at least 3 doneCriteria, each checkable and under 140 characters; include every question you answered in "answers".'}
+function evoBuildPrompt(packet,task){
+  var specLines=Object.keys(packet.spec).map(function(k){return k+': '+packet.spec[k]}).join('\n');
+  var crit=(packet.doneCriteria||[]).map(function(c){return '- '+c}).join('\n');
+  return 'Build ONE self-contained HTML file from ONLY this plan. Do not add features outside it.\n\nTHE TASK: '+task+
+   '\n\nSPEC:\n'+specLines+
+   '\n\nDESTINATION: '+packet.destination+
+   '\n\nDONE CHECKS (every one must be visibly true in the app):\n'+crit+
+   '\n\nHARD RULES:\n- Single HTML file. Vanilla JS and CSS only. No external requests.\n- Zero console errors on load.\n- Storage: localStorage can THROW on some setups — wrap EVERY storage access in try/catch with an in-memory fallback object. Never call it bare.\n- No placeholder, lorem ipsum, TODO, "coming soon", or dummy text anywhere.\n- A real <title> and a visible heading.\n- Return ONLY the HTML — no explanations, no fences.'}
+
+/* ---------- parsing pasted answers ---------- */
+function evoExtractJSON(text){
+  var t=String(text||'');
+  var fenced=t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(fenced)t=fenced[1];
+  var s=t.indexOf('{');if(s<0)return null;
+  var depth=0,inStr=false,esc=false;
+  for(var i=s;i<t.length;i++){var c=t[i];
+    if(inStr){if(esc)esc=false;else if(c==='\\')esc=true;else if(c==='"')inStr=false}
+    else{if(c==='"')inStr=true;else if(c==='{')depth++;else if(c==='}'){depth--;if(depth===0){try{return JSON.parse(t.slice(s,i+1))}catch(e){return null}}}}}
+  return null}
+function evoNormalizePacket(obj){
+  if(!obj||typeof obj!=='object')return null;
+  var spec=obj.spec||{};
+  if(!spec||typeof spec!=='object'||Array.isArray(spec))return null;
+  var dc=obj.doneCriteria||obj.done_criteria||obj.criteria||[];
+  if(!Array.isArray(dc))return null;
+  var ans=obj.answers||Object.keys(spec).map(function(k){return{id:k,text:String(spec[k]),by:'ai'}});
+  return{spec:spec,destination:String(obj.destination||'one self-contained HTML file'),
+    doneCriteria:dc.map(String),
+    answers:ans.map(function(a){return{id:String(a.id||a.q||'?'),text:String(a.text||a.answer||''),by:'ai',via:'pasted'}}),
+    summary:obj.summary?String(obj.summary):null}}
+function evoExtractHTML(text){
+  var t=String(text||'');
+  var fenced=t.match(/```html\s*([\s\S]*?)```/i)||t.match(/```\s*([\s\S]*?)```/);
+  if(fenced)t=fenced[1];
+  t=t.trim();
+  if(!/<html|<!doctype|<body/i.test(t))return null;
+  return t}
+
+/* ---------- provider auto-call (OpenAI-compatible + Gemini) ---------- */
+var EVO_CHAT_URL={
+ groq:'https://api.groq.com/openai/v1/chat/completions',
+ openrouter:'https://openrouter.ai/api/v1/chat/completions',
+ cerebras:'https://api.cerebras.ai/v1/chat/completions',
+ sambanova:'https://api.sambanova.ai/v1/chat/completions',
+ mistral:'https://api.mistral.ai/v1/chat/completions',
+ nvidia:'https://integrate.api.nvidia.com/v1/chat/completions',
+ zai:'https://api.z.ai/api/paas/v4/chat/completions',
+ pollinations:'https://text.pollinations.ai/openai',
+ meta:'https://api.meta.ai/v1/chat/completions',
+ github:'https://models.github.ai/inference/chat/completions'};
+function evoAIState(){try{if(typeof AI!=='undefined'&&AI)return AI}catch(e){}return{keys:{},models:{},judge:'groq'}}
+function evoProviderDef(pid){try{if(typeof AI_PROVIDERS!=='undefined'){for(var i=0;i<AI_PROVIDERS.length;i++)if(AI_PROVIDERS[i].id===pid)return AI_PROVIDERS[i]}}catch(e){}return null}
+function evoAutoSupported(pid){return !!EVO_CHAT_URL[pid]||pid==='google'}
+function evoCallProvider(prompt,cb){
+  var st=evoAIState(),pid=st.judge||'groq',def=evoProviderDef(pid),key=st.keys[pid];
+  if(!evoAutoSupported(pid)){cb(null,'This AI ('+(def?def.name:pid)+') needs the copy/paste route for now.');return}
+  if(!key&&!(def&&def.nokey)){cb(null,'No key saved for '+(def?def.name:pid)+'. Save one in Settings → AI & Agents, or use copy/paste.');return}
+  var model=st.models[pid]||(def&&def.models&&def.models[0])||'';
+  function fail(msg){cb(null,msg)}
+  if(pid==='google'){
+    var url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model||'gemini-2.5-flash')+':generateContent?key='+encodeURIComponent(key);
+    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})})
+      .then(function(r){return r.json().then(function(d){return{r:r,d:d}})})
+      .then(function(x){var t=x.d&&x.d.candidates&&x.d.candidates[0]&&x.d.candidates[0].content&&x.d.candidates[0].content.parts&&x.d.candidates[0].content.parts.map(function(p){return p.text||''}).join('');t?cb(t):fail('The AI returned nothing usable (HTTP '+x.r.status+').')})
+      .catch(function(){fail('Could not reach Google from this browser (network/CORS). Try copy/paste.')});
+    return}
+  var url2=EVO_CHAT_URL[pid];
+  var headers={'Content-Type':'application/json'};if(key)headers['Authorization']='Bearer '+key;
+  if(pid==='openrouter')headers['X-Title']='moor';
+  if(pid==='pollinations'&&!key)url2='https://text.pollinations.ai/openai';
+  fetch(url2,{method:'POST',headers:headers,body:JSON.stringify({model:model,messages:[{role:'user',content:prompt}],temperature:0.7})})
+    .then(function(r){return r.json().then(function(d){return{r:r,d:d}})})
+    .then(function(x){var t=x.d&&x.d.choices&&x.d.choices[0]&&x.d.choices[0].message&&x.d.choices[0].message.content;
+      if(t)cb(t);else fail('The AI returned nothing usable (HTTP '+x.r.status+'). '+(x.d&&x.d.error&&x.d.error.message?x.d.error.message:''))})
+    .catch(function(){fail('Could not reach '+(def?def.name:pid)+' from this browser (network/CORS). Try copy/paste.')});
+}
+
+/* ---------- verifier: 5 script checks through the real open path (blob iframe) ---------- */
+function evoVerifyBuild(html,packet,task){
+  return new Promise(function(resolve){
+    var token='evo'+Math.random().toString(36).slice(2)+Date.now().toString(36);
+    var f=document.createElement('iframe');
+    f.setAttribute('sandbox','allow-scripts');
+    f.style.cssText='position:fixed;left:-9999px;top:0;width:360px;height:480px;visibility:hidden';
+    var errs=[];
+    function finish(ok,info){
+      var checks;
+      if(!ok){checks=[['build loads',false]]}
+      else{
+        var keys=String((packet.spec&&(packet.spec.core||''))+' '+(packet.spec&&(packet.spec.kind||''))).toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>4&&!EVO_STOP[w]}).slice(0,4);
+        var txt=(info.text||'').toLowerCase();
+        var hits=keys.filter(function(k){return txt.indexOf(k)>=0}).length;
+        var title=(info.title||'').trim();
+        checks=[
+          ['zero errors on load',errs.length===0],
+          ['renders real content',(info.text||'').trim().length>50],
+          ['matches the plan',keys.length===0||hits>=Math.max(1,Math.ceil(keys.length/2))],
+          ['no placeholder text',!/lorem|placeholder|\bTODO\b|coming soon|dummy text/i.test((info.text||'')+' '+(info.html||''))],
+          ['has a real title',!!title&&!/^untitled|^document$/i.test(title)]
+        ];
+      }
+      try{URL.revokeObjectURL(f.src)}catch(e){}
+      try{f.remove()}catch(e){}
+      resolve({checks:checks,passRate:checks.filter(function(c){return c[1]}).length/checks.length,errors:errs});
+    }
+    var done=false;
+    function onMsg(ev){
+      var d=ev&&ev.data;
+      if(!d||d.__evo!==token)return;
+      if(d.errs&&d.errs.length)errs=errs.concat(d.errs);
+      once(true,{text:d.text||'',title:d.title||'',html:d.html||''});
+    }
+    function once(ok,info){if(done)return;done=true;try{window.removeEventListener('message',onMsg)}catch(e){};finish(ok,info)}
+    window.addEventListener('message',onMsg);
+    var hook='<script>window.__eerrs=[];'+
+      'window.addEventListener("error",function(e){try{if(e&&e.preventDefault)e.preventDefault();window.__eerrs.push(String((e&&e.message)||"error"))}catch(x){}});'+
+      'window.addEventListener("load",function(){setTimeout(function(){'+
+      'var t="";try{t=document.body?(document.body.innerText||document.body.textContent||""):""}catch(x){}'+
+      'var h="";try{h=document.documentElement?document.documentElement.outerHTML.slice(0,4000):""}catch(x){}'+
+      'var ti="";try{ti=document.title||""}catch(x){}'+
+      'try{parent.postMessage({__evo:"'+token+'",errs:window.__eerrs,text:t,title:ti,html:h},"*")}catch(x){}'+
+      '},600)});<\/script>';
+    var h=String(html);
+    if(/<head[^>]*>/i.test(h))h=h.replace(/<head[^>]*>/i,function(m){return m+hook});
+    else h=hook+h;
+    document.body.appendChild(f);
+    try{f.src=URL.createObjectURL(new Blob([h],{type:'text/html'}))}catch(e){once(false)}
+    setTimeout(function(){once(false)},12000);
+  });
+}
+
+/* ---------- ledger banking ---------- */
+function evoBankBout(flow){
+  var tag=flow.contextId;
+  flow.results.forEach(function(r){
+    var e=null;(EVO_REG.entries||[]).forEach(function(x){if(x.funnel_id===r.pid&&x.context===tag)e=x});
+    if(!e){var p=evoProf(r.pid);e={funnel_id:r.pid,name:p.name,arch:p.arch,context:tag,runs:0,wins:0,log:[]};EVO_REG.entries.push(e)}
+    e.runs++;if(r.pid===flow.winner)e.wins++;
+    var tr=null;(flow.triageRes||[]).forEach(function(t){if(t.pid===r.pid)tr=t});
+    var b=null;(flow.builds||[]).forEach(function(x){if(x.pid===r.pid)b=x});
+    e.log.push({task:String(flow.task).slice(0,80),crowned:r.pid===flow.winner,triage:tr?tr.verdict:'—',
+      build:b?(b.verify&&b.verify.passRate===1?'verified':'FAILED'):'not built',
+      answers:(r.packet.answers||[]).map(function(a){return a.id+': '+String(a.text).slice(0,60)})});
+    if(e.log.length>25)e.log=e.log.slice(-25);
+  });
+  var wb=null;(flow.builds||[]).forEach(function(x){if(x.pid===flow.winner)wb=x});
+  var boutId=flow.boutId;
+  EVO_REG.builds.push({t:Date.now(),tag:tag,bout:boutId,task:String(flow.task).slice(0,80),winner:flow.winner,
+    title:wb?wb.title:'',html:wb?wb.html:'',
+    checks:wb&&wb.verify?wb.verify.checks.map(function(c){return c[0]+': '+(c[1]?'pass':'FAIL')}):[]});
+  if(EVO_REG.builds.length>40)EVO_REG.builds=EVO_REG.builds.slice(-40);
+  if(flow.winner){
+    EVO_REG.current[tag]={pid:flow.winner,bout:boutId,at:Date.now(),task:String(flow.task).slice(0,80),
+      title:wb?wb.title:'',html:wb?wb.html:'',
+      checks:wb&&wb.verify?wb.verify.checks:[]};
+    EVO_REG.log.push({t:Date.now(),note:'👑 '+evoProf(flow.winner).name+' crowned for ['+tag+'] — bout banked'});
+  }else{
+    EVO_REG.log.push({t:Date.now(),note:'✗ no winner for ['+tag+'] — both rejected, current unchanged — bout banked'});
+  }
+  if(EVO_REG.log.length>60)EVO_REG.log=EVO_REG.log.slice(-60);
+  evoSaveReg();
+}
+
+/* ---------- flow state ---------- */
+var evoFlow=null;
+var evoComms=[];
+function evoSay(from,to,msg,readback){
+  evoComms.push({from:from,to:to,msg:msg,readback:readback});
+  var el=document.getElementById('evoComms');
+  if(el){el.innerHTML=evoComms.map(function(c){return '<div class="evo-comm"><b>'+evoEsc(c.from)+' → '+evoEsc(c.to)+':</b> '+evoEsc(c.msg)+'<br><span class="evo-rb">↩ reads back:</span> '+evoEsc(c.readback)+' ✓</div>'}).join('');el.scrollTop=el.scrollHeight}
+}
+
+/* ==================== UI ==================== */
+var evoCssDone=false;
+function evoInjectCss(){
+  if(evoCssDone)return;evoCssDone=true;
+  var c=document.createElement('style');c.textContent=
+  '#evoModal{position:fixed;inset:0;z-index:90000;display:none}'+
+  '#evoModal.on{display:block}'+
+  '.evo-back{position:absolute;inset:0;background:rgba(0,0,0,.6)}'+
+  '.evo-sheet{position:absolute;inset:0;margin:auto;max-width:640px;height:92%;background:#0b0e14;color:#e9edf5;border:1px solid #232c40;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif}'+
+  '@media(max-width:680px){.evo-sheet{height:100%;border-radius:0;max-width:none}}'+
+  '.evo-head{padding:14px 16px 10px;border-bottom:1px solid #232c40}'+
+  '.evo-head h2{margin:0;font-size:18px}.evo-head p{margin:4px 0 0;font-size:12px;color:#8b93a7}'+
+  '.evo-x{position:absolute;top:10px;right:12px;background:none;border:0;color:#8b93a7;font-size:22px;cursor:pointer}'+
+  '.evo-tabs{display:flex;border-bottom:1px solid #232c40}'+
+  '.evo-tabs button{flex:1;background:none;border:0;color:#8b93a7;font-size:12px;font-weight:700;padding:10px 0;cursor:pointer}'+
+  '.evo-tabs button.on{color:#c9bdff;border-bottom:2px solid #7c5cff}'+
+  '.evo-body{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}'+
+  '.evo-card{background:#141a26;border:1px solid #232c40;border-radius:14px;padding:14px;margin-bottom:12px}'+
+  '.evo-card h3{margin:0 0 6px;font-size:15px}'+
+  '.evo-row{display:flex;align-items:center;gap:8px}'+
+  '.evo-grow{flex:1}.evo-mut{color:#8b93a7;font-size:12px}.evo-small{font-size:12px}'+
+  '.evo-btn{display:block;width:100%;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:700;color:#fff;background:#7c5cff;cursor:pointer;margin-top:8px}'+
+  '.evo-btn.ghost{background:#1a2233;color:#e9edf5;border:1px solid #232c40}'+
+  '.evo-btn.sm{width:auto;padding:8px 14px;font-size:13px;display:inline-block;margin:8px 8px 0 0}'+
+  '.evo-btn.green{background:#3ddc84;color:#06281a}.evo-btn.red{background:#3a1d24;color:#ff9aa5;border:1px solid #5c2b33}'+
+  '.evo-btn:disabled{opacity:.45;cursor:default}'+
+  '.evo-link{background:none;border:0;color:#b7a6ff;font-size:12px;cursor:pointer;text-decoration:underline;padding:8px 0}'+
+  '.evo-ta{width:100%;background:#1a2233;border:1px solid #232c40;border-radius:12px;color:#e9edf5;padding:12px;font-size:13px;min-height:90px;resize:vertical;font-family:ui-monospace,Menlo,monospace;margin-top:8px}'+
+  '.evo-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}'+
+  '.evo-wait{background:#1a2233;color:#8b93a7}.evo-ok{background:rgba(61,220,132,.15);color:#3ddc84}.evo-bad{background:rgba(255,107,107,.12);color:#ff6b6b}.evo-hold{background:rgba(255,176,32,.12);color:#ffb020}'+
+  '.evo-check{font-size:12.5px;margin:3px 0}.evo-pass{color:#3ddc84}.evo-fail{color:#ff6b6b}'+
+  '.evo-comm{font-size:12.5px;border-left:3px solid #7c5cff;padding:6px 10px;margin:8px 0;background:#0e1420;border-radius:0 8px 8px 0}'+
+  '.evo-comm .evo-rb{color:#3ddc84}'+
+  '.evo-stage{font-size:11px;font-weight:800;letter-spacing:1px;color:#7c5cff;text-transform:uppercase;margin:14px 0 6px}'+
+  '.evo-frame{width:100%;height:380px;border:1px solid #232c40;border-radius:10px;background:#fff;margin:8px 0}'+
+  '.evo-radio{display:flex;gap:8px;align-items:flex-start;background:#1a2233;border:1px solid #232c40;border-radius:10px;padding:10px;margin:6px 0;cursor:pointer}'+
+  '.evo-radio.on{border-color:#7c5cff}'+
+  '.evo-dot{width:14px;height:14px;border-radius:50%;display:inline-block;margin-right:6px}';
+  document.head.appendChild(c);
+}
+function evoEnsureModal(){
+  evoInjectCss();
+  var m=document.getElementById('evoModal');
+  if(m)return m;
+  m=document.createElement('div');m.id='evoModal';
+  m.innerHTML='<div class="evo-back" data-evo="close"></div>'+
+   '<div class="evo-sheet" role="dialog" aria-label="Evolve">'+
+   '<button class="evo-x" data-evo="close" aria-label="Close">×</button>'+
+   '<div class="evo-head"><h2>⚙️ Evolve</h2><p>Three plans compete · two get built for real · you decide what moves forward.</p></div>'+
+   '<div class="evo-tabs"><button data-tab="loop" class="on">Loop</button><button data-tab="builds">Builds</button><button data-tab="current">Current</button><button data-tab="ledger">Ledger</button></div>'+
+   '<div class="evo-body" id="evoBody"></div></div>';
+  document.body.appendChild(m);
+  m.addEventListener('click',evoOnClick);
+  return m;
+}
+function evoClosest(el,sel){while(el&&el!==document){if(el.matches&&el.matches(sel))return el;el=el.parentNode}return null}
+function evoOnClick(ev){
+  var t=ev.target;
+  var tabEl=evoClosest(t,'[data-tab]');
+  if(tabEl){evoShowTab(tabEl.getAttribute('data-tab'));return}
+  var closeEl=evoClosest(t,'[data-evo="close"]');
+  if(closeEl){document.getElementById('evoModal').classList.remove('on');return}
+  var aEl=evoClosest(t,'[data-act]');
+  if(!aEl||!evoFlow)return;
+  var a=aEl.getAttribute('data-act'),t=aEl;
+  var pid=t.getAttribute('data-pid');
+  if(a==='copy-funnel')evoCopy(evoFunnelPrompt(pid,evoFlow.task,evoFlow.contextText));
+  else if(a==='ask-funnel')evoAskFunnel(pid,t);
+  else if(a==='use-paste')evoUsePaste(pid,t);
+  else if(a==='auto-funnel')evoAutoFunnel(pid,t);
+  else if(a==='triage')evoDoTriage();
+  else if(a==='copy-build')evoCopy(evoBuildPrompt(evoFlowPacket(pid),evoFlow.task));
+  else if(a==='ask-build')evoAskBuild(pid,t);
+  else if(a==='check-build')evoCheckBuild(pid,t);
+  else if(a==='crown')evoCrown(pid);
+  else if(a==='reject')evoRejectBoth();
+  else if(a==='again')evoStartLoop();
+  else if(a==='to-build'){evoFlow.stage='build';evoRenderLoop()}
+  else if(a==='to-crown'){evoFlow.stage='crown';evoRenderLoop()}
+  else if(a==='mode-copy'){evoFlow.mode='copy';evoRenderLoop()}
+  else if(a==='mode-key'){evoFlow.mode='key';evoRenderLoop()}
+  else if(a==='view-build')evoViewBuild(t.getAttribute('data-b'));
+}
+var evoCurTab='loop';
+function evoShowTab(tab){
+  evoCurTab=tab;
+  var m=document.getElementById('evoModal');if(!m)return;
+  var btns=m.querySelectorAll('.evo-tabs button');
+  for(var i=0;i<btns.length;i++)btns[i].classList.toggle('on',btns[i].getAttribute('data-tab')===tab);
+  if(tab==='loop')evoRenderLoop();
+  else if(tab==='builds')evoRenderBuildsTab();
+  else if(tab==='current')evoRenderCurrentTab();
+  else if(tab==='ledger')evoRenderLedgerTab();
+}
+/* ---------- entry ---------- */
+function evoPlanTask(){
+  var ep=null;
+  try{ep=window.__evoPlan||null}catch(e){}
+  if(!ep||!ep.id||ep.kind==='aq')return null;
+  var txt=String(ep.txt||'');
+  var one='';
+  var mm=txt.match(/## 1\.[^\n]*\n([\s\S]*?)(?=\n## 2\.|\n## \d)/);
+  if(mm)one=mm[1];
+  one=one.replace(/^#.*$/gm,'').replace(/^[>\s-]*/gm,'').replace(/\n+/g,' ').trim().slice(0,400);
+  var task=ep.name+(one?': '+one:ep.name);
+  return{name:ep.name,task:task,contextText:txt.slice(0,1500)};
+}
+function evoOpen(){
+  var pt=evoPlanTask();
+  if(!pt){evoToast('Open a plan first, then Evolve.');return}
+  evoLoadReg();
+  evoFlow={planName:pt.name,task:pt.task,contextText:pt.contextText,
+    contextId:'plan:'+pt.name,blueprintHash:evoHash(pt.task+pt.contextText),
+    boutId:evoUid('bout'),mode:'copy',stage:'setup',
+    route:null,results:[],triageRes:[],builds:[],winner:null};
+  evoComms=[];
+  evoEnsureModal().classList.add('on');
+  evoShowTab('loop');
+  window.__evoFlow=evoFlow;
+}
+function evoStartLoop(){
+  var f=evoFlow;if(!f)return;
+  var domain=evoDetectDomain(f.task+' '+f.contextText);
+  f.route=evoRoute(domain,f.contextId);
+  evoSay('BLUEPRINT','FUNNELS','frozen "'+f.task.slice(0,60)+'" → '+f.route.fids.map(function(id){return evoProf(id).name}).join(', '),
+    'funnels read back: task frozen, nothing recomputed — '+f.route.why);
+  f.results=[];f.triageRes=[];f.builds=[];f.winner=null;f.stage='funnels';
+  evoRenderLoop();
+}
+/* ---------- loop tab ---------- */
+function evoModePicker(){
+  var f=evoFlow,st=evoAIState(),pid=st.judge||'groq',def=evoProviderDef(pid);
+  var keyName=def?def.name:pid,hasKey=!!st.keys[pid]||(def&&def.nokey);
+  var h='<div class="evo-card"><h3>How should the thinking get done?</h3>';
+  h+='<div class="evo-radio'+(f.mode==='copy'?' on':'')+'" data-act="mode-copy" style="display:block"><b>📋 Copy + paste with my own AI <span class="evo-pill evo-ok">default</span></b><div class="evo-mut">No key needed. Tap <b>Copy prompt</b> at each step, paste it into any AI chat you use (ChatGPT, Claude, whatever), paste the answer back here. Nothing leaves this page except what you copy.</div></div>';
+  h+='<div class="evo-radio'+(f.mode==='key'?' on':'')+'" data-act="mode-key" style="display:block"><b>✦ Use my Moor AI key'+(hasKey?'':' (no key saved)')+'</b><div class="evo-mut">Calls '+
+    evoEsc(keyName)+' directly with your saved key'+(evoAutoSupported(pid)?'.':' — not supported for auto-calls yet, copy/paste still works.')+'</div></div>';
+  h+='</div>';
+  return h;
+}
+function evoRenderLoop(){
+  var f=evoFlow,el=document.getElementById('evoBody');if(!f||!el)return;
+  var h='';
+  if(f.stage==='setup'){
+    h+='<div class="evo-card"><h3>Ready to evolve: '+evoEsc(f.planName)+'</h3>'+
+      '<p class="evo-small">The blueprint is frozen as-is. Three different planners will each write a plan, the best two get built for real, and <b>you decide which (if any) is good enough to move forward with</b>.</p>'+
+      '<p class="evo-mut">Task: '+evoEsc(f.task.slice(0,140))+'</p></div>';
+    h+=evoModePicker();
+    h+='<button class="evo-btn" data-act="again">Start the loop</button>';
+  }
+  else if(f.stage==='funnels'){h=evoStageFunnels(f)}
+  else if(f.stage==='triage'){h=evoStageTriage(f)}
+  else if(f.stage==='build'){h=evoStageBuild(f)}
+  else if(f.stage==='crown'){h=evoStageCrown(f)}
+  else if(f.stage==='done'){h=evoStageDone(f)}
+  h+='<div class="evo-card"><h3>📻 Read-backs</h3><div id="evoComms">'+
+    (evoComms.length?evoComms.map(function(c){return '<div class="evo-comm"><b>'+evoEsc(c.from)+' → '+evoEsc(c.to)+':</b> '+evoEsc(c.msg)+'<br><span class="evo-rb">↩ reads back:</span> '+evoEsc(c.readback)+' ✓</div>'}).join(''):'<p class="evo-mut">Every handoff reads back here before the loop moves on.</p>')+'</div></div>';
+  el.innerHTML=h;
+  window.__evoFlow=f;
+}
+function evoFunnelCard(f,pid){
+  var p=evoProf(pid),r=null;
+  f.results.forEach(function(x){if(x.pid===pid)r=x});
+  var st=r?(r.passRate===1?'ok':'bad'):'wait';
+  var pill=st==='ok'?'<span class="evo-pill evo-ok">✓ plan ready</span>':st==='bad'?'<span class="evo-pill evo-bad">✗ needs a fix</span>':'<span class="evo-pill evo-wait">waiting</span>';
+  var h='<div class="evo-card" data-fc="'+pid+'"><div class="evo-row"><span class="evo-dot" style="background:'+p.color+'"></span><div class="evo-grow"><b>'+p.name+'</b> <span class="evo-mut">'+p.arch+'</span></div>'+pill+'</div>'+
+    '<p class="evo-mut">'+evoEsc(p.blurb)+'</p>';
+  if(f.mode==='key'&&evoAutoSupported(evoAIState().judge||'groq')){
+    h+='<button class="evo-btn sm" data-act="ask-funnel" data-pid="'+pid+'">✦ Ask my AI</button><button class="evo-btn sm ghost" data-act="copy-funnel" data-pid="'+pid+'">📋 Copy instead</button>';
+  }else{
+    h+='<button class="evo-btn sm" data-act="copy-funnel" data-pid="'+pid+'">📋 Copy prompt</button>';
+  }
+  h+='<textarea class="evo-ta" data-paste="'+pid+'" placeholder="Paste the AI\'s answer here…"></textarea>'+
+    '<div class="evo-row"><button class="evo-btn sm ghost" data-act="use-paste" data-pid="'+pid+'">Use this answer</button><button class="evo-link" data-act="auto-funnel" data-pid="'+pid+'">quick auto-fill instead</button></div>'+
+    '<div data-fres="'+pid+'">'+(r?evoPacketSummary(r):'')+'</div></div>';
+  return h;
+}
+function evoPacketSummary(r){
+  var bad=r.checks.filter(function(c){return !c[1]});
+  var h='<div style="margin-top:8px">';
+  r.checks.forEach(function(c){h+='<div class="evo-check"><span class="'+(c[1]?'evo-pass':'evo-fail')+'">'+(c[1]?'✓':'✗')+'</span> '+evoEsc(c[0])+'</div>'});
+  if(!bad.length){
+    h+='<div class="evo-small" style="margin-top:6px"><b>Plan:</b> '+evoEsc(Object.keys(r.packet.spec).map(function(k){return k+'='+(String(r.packet.spec[k]).slice(0,40))}).join(' · ').slice(0,220))+'</div>';
+    if(r.conflicts.length)h+='<div class="evo-small evo-mut">⚠ '+r.conflicts.length+' conflict(s): '+evoEsc(r.conflicts.map(function(c){return c.action}).join('; ').slice(0,160))+'</div>';
+  }else h+='<div class="evo-small evo-fail" style="margin-top:6px">Fix the ✗ items and paste again — a failing plan never reaches a build slot.</div>';
+  return h+'</div>';
+}
+function evoStageFunnels(f){
+  var h='<div class="evo-stage">1 · three plans</div>';
+  h+='<p class="evo-small">Router: <b>'+f.route.fids.map(function(id){return evoProf(id).name}).join(' vs ')+'</b> <span class="evo-mut">— '+evoEsc(f.route.why)+'</span></p>';
+  h+=evoModePicker();
+  f.route.fids.forEach(function(pid){h+=evoFunnelCard(f,pid)});
+  var ready=f.results.filter(function(r){return r.passRate===1}).length;
+  h+='<button class="evo-btn" data-act="triage" '+(ready>=3?'':'disabled')+'>Sort into build slots ('+ready+'/3 plans ready)</button>';
+  return h;
+}
+function evoUsePaste(pid,btn){
+  var f=evoFlow,card=btn.closest('[data-fc]'),ta=card.querySelector('[data-paste]');
+  var obj=evoExtractJSON(ta.value);
+  var box=card.querySelector('[data-fres]');
+  if(!obj){box.innerHTML='<div class="evo-check"><span class="evo-fail">✗</span> Could not find a plan in that paste. Copy the prompt again and make sure the AI returns the JSON.</div>';return}
+  var pkt=evoNormalizePacket(obj);
+  if(!pkt){box.innerHTML='<div class="evo-check"><span class="evo-fail">✗</span> That JSON is not a plan (needs spec, destination, doneCriteria). Paste again.</div>';return}
+  var checks=evoPacketChecks(pkt,f.task);
+  var r={pid:pid,packet:pkt,answers:pkt.answers,conflicts:[],stats:{asked:pkt.answers.length,conflicts:0},
+    passRate:checks.filter(function(c){return c[1]}).length/checks.length,checks:checks,source:'pasted'};
+  f.results=f.results.filter(function(x){return x.pid!==pid});f.results.push(r);
+  evoSay('FUNNEL '+evoProf(pid).name,'TRIAGE','plan ready: '+pkt.answers.length+' answers via your AI',
+    'triage reads back: plan '+(r.passRate===1?'valid — all 6 checks pass':'INVALID — '+r.checks.filter(function(c){return !c[1]}).map(function(c){return c[0]}).join(', ')));
+  evoRenderLoop();
+}
+function evoAutoFunnel(pid){
+  var f=evoFlow,r=evoRunFunnel(pid,f.task);r.source='auto';
+  f.results=f.results.filter(function(x){return x.pid!==pid});f.results.push(r);
+  evoSay('FUNNEL '+evoProf(pid).name,'TRIAGE','plan ready: '+r.stats.asked+' answers via quick auto-fill',
+    'triage reads back: plan '+(r.passRate===1?'valid':'INVALID')+' — auto-filled, no AI judgment involved');
+  evoRenderLoop();
+}
+function evoAskFunnel(pid,btn){
+  btn.disabled=true;btn.textContent='Asking…';
+  var f=evoFlow;
+  evoCallProvider(evoFunnelPrompt(pid,f.task,f.contextText),function(text,err){
+    btn.disabled=false;btn.textContent='✦ Ask my AI';
+    if(err){evoToast(err);return}
+    var card=btn.closest('[data-fc]');if(card){var ta=card.querySelector('[data-paste]');if(ta)ta.value=text}
+    evoUsePaste(pid,btn);
+  });
+}
+function evoFlowPacket(pid){var r=null;evoFlow.results.forEach(function(x){if(x.pid===pid)r=x});return r?r.packet:{spec:{},destination:'',doneCriteria:[]}}
+function evoDoTriage(){
+  var f=evoFlow;if(!f)return;
+  f.triageRes=evoTriage(f.results,f.task);
+  var adv=f.triageRes.filter(function(t){return t.verdict==='PASS'}).map(function(t){return evoProf(t.pid).name}).join(', ');
+  evoSay('TRIAGE','BUILDER','sorted '+f.results.length+' plans — '+adv+' earn the '+EVO_BUILD_SLOTS+' build slots',
+    'builder reads back: '+adv+' advance'+(f.results.length-EVO_BUILD_SLOTS?', the rest hold':''));
+  f.stage='triage';evoRenderLoop();
+}
+function evoStageTriage(f){
+  var h='<div class="evo-stage">2 · triage — '+EVO_BUILD_SLOTS+' build slots</div>';
+  f.triageRes.forEach(function(t){
+    var cls=t.verdict==='PASS'?'evo-ok':t.verdict==='HOLD'?'evo-hold':'evo-bad';
+    h+='<div class="evo-card"><span class="evo-pill '+cls+'">'+t.verdict+'</span> <b>'+evoProf(t.pid).name+'</b><div class="evo-mut">'+evoEsc(t.why)+'</div></div>';
+  });
+  h+='<button class="evo-btn" data-act="to-build">Build the finalists</button>';
+  return h;
+}
+function evoStageBuild(f){
+  var h='<div class="evo-stage">3 · build the finalists</div>';
+  h+='<p class="evo-small">Each builder gets <b>only</b> its plan — never the blueprint, never the other plans.</p>';
+  h+=evoModePicker();
+  f.triageRes.filter(function(t){return t.verdict==='PASS'}).forEach(function(t){
+    var pid=t.pid,b=null;f.builds.forEach(function(x){if(x.pid===pid)b=x});
+    var st=b?(b.verify.passRate===1?'ok':'bad'):'wait';
+    var pill=st==='ok'?'<span class="evo-pill evo-ok">✓ verified</span>':st==='bad'?'<span class="evo-pill evo-bad">✗ failed checks</span>':'<span class="evo-pill evo-wait">waiting</span>';
+    h+='<div class="evo-card" data-bc="'+pid+'"><div class="evo-row"><span class="evo-dot" style="background:'+evoProf(pid).color+'"></span><div class="evo-grow"><b>'+evoProf(pid).name+'</b></div>'+pill+'</div>';
+    if(f.mode==='key'&&evoAutoSupported(evoAIState().judge||'groq'))
+      h+='<button class="evo-btn sm" data-act="ask-build" data-pid="'+pid+'">✦ Ask my AI to build</button><button class="evo-btn sm ghost" data-act="copy-build" data-pid="'+pid+'">📋 Copy instead</button>';
+    else
+      h+='<button class="evo-btn sm" data-act="copy-build" data-pid="'+pid+'">📋 Copy build prompt</button>';
+    h+='<textarea class="evo-ta" data-bpaste="'+pid+'" style="min-height:120px" placeholder="Paste the built HTML here…"></textarea>'+
+      '<button class="evo-btn sm ghost" data-act="check-build" data-pid="'+pid+'">Check this build</button>'+
+      '<div data-bres="'+pid+'">'+(b?evoBuildSummary(b):'')+'</div></div>';
+  });
+  var ok=f.builds.filter(function(b){return b.verify&&b.verify.passRate===1}).length;
+  var need=f.triageRes.filter(function(t){return t.verdict==='PASS'}).length;
+  h+='<button class="evo-btn" data-act="to-crown" '+(ok>=need&&need>0?'':'disabled')+'>Review the builds ('+ok+'/'+need+' verified)</button>';
+  return h;
+}
+function evoBuildSummary(b){
+  var h='<div style="margin-top:8px">';
+  b.verify.checks.forEach(function(c){h+='<div class="evo-check"><span class="'+(c[1]?'evo-pass':'evo-fail')+'">'+(c[1]?'✓':'✗')+'</span> '+evoEsc(c[0])+'</div>'});
+  if(b.verify.errors&&b.verify.errors.length)h+='<div class="evo-small evo-fail">'+evoEsc(b.verify.errors.slice(0,3).join('; ').slice(0,200))+'</div>';
+  if(b.verify.passRate<1)h+='<div class="evo-small evo-fail" style="margin-top:6px">Fix the ✗ items (or paste a fresh build) — a failing build can never move forward.</div>';
+  return h+'</div>';
+}
+function evoCheckBuild(pid,btn){
+  var f=evoFlow,card=btn.closest('[data-bc]'),ta=card.querySelector('[data-bpaste]');
+  var html=evoExtractHTML(ta.value),box=card.querySelector('[data-bres]');
+  if(!html){box.innerHTML='<div class="evo-check"><span class="evo-fail">✗</span> That does not look like an HTML app. Paste the full HTML the AI returned.</div>';return}
+  btn.disabled=true;btn.textContent='Checking…';
+  var pkt=evoFlowPacket(pid);
+  evoVerifyBuild(html,pkt,f.task).then(function(v){
+    btn.disabled=false;btn.textContent='Check this build';
+    var title='';try{var m=html.match(/<title[^>]*>([^<]*)/i);title=m?m[1].trim():''}catch(e){}
+    var b={pid:pid,html:html,title:title||evoProf(pid).name+' build',verify:v};
+    f.builds=f.builds.filter(function(x){return x.pid!==pid});f.builds.push(b);
+    var n=v.checks.filter(function(c){return c[1]}).length;
+    evoSay('BUILDER','VERIFY','build complete: '+(b.title||'app'),
+      'verifier reads back: '+n+'/'+v.checks.length+' checks pass'+(v.errors.length?'; errors: '+v.errors.slice(0,2).join('; '):''));
+    evoRenderLoop();
+  });
+}
+function evoAskBuild(pid,btn){
+  btn.disabled=true;btn.textContent='Asking…';
+  var f=evoFlow;
+  evoCallProvider(evoBuildPrompt(evoFlowPacket(pid),f.task),function(text,err){
+    btn.disabled=false;btn.textContent='✦ Ask my AI to build';
+    if(err){evoToast(err);return}
+    var card=btn.closest('[data-bc]');if(card){var ta=card.querySelector('[data-bpaste]');if(ta)ta.value=text}
+    evoCheckBuild(pid,btn);
+  });
+}
+/* ---------- crown: the "good enough to move forward?" gate ---------- */
+function evoStageCrown(f){
+  var h='<div class="evo-stage">4 · your call</div>';
+  h+='<div class="evo-card"><h3>Is one of these good enough to move forward with?</h3>'+
+    '<p class="evo-small">Try each build below — tap through it like you would for real. Crown the one you would actually keep working with. <b>Nothing moves forward until you say so.</b></p></div>';
+  f.builds.forEach(function(b){
+    var ok=b.verify.passRate===1;
+    h+='<div class="evo-card"><div class="evo-row"><div class="evo-grow"><b>'+evoProf(b.pid).name+'</b> <span class="evo-mut">— '+evoEsc(b.title)+'</span></div>'+(ok?'<span class="evo-pill evo-ok">✓ verified</span>':'<span class="evo-pill evo-bad">✗ unverified</span>')+'</div>'+
+      '<iframe class="evo-frame" data-preview="'+b.pid+'" title="build preview"></iframe>'+
+      '<button class="evo-btn green" data-act="crown" data-pid="'+b.pid+'" '+(ok?'':'disabled')+'>✓ This one moves forward</button></div>';
+  });
+  h+='<button class="evo-btn red" data-act="reject">✗ Neither is good enough — run another bout</button>';
+  setTimeout(function(){
+    f.builds.forEach(function(b){
+      var fr=document.querySelector('iframe[data-preview="'+b.pid+'"]');
+      if(fr){try{fr.src=URL.createObjectURL(new Blob([b.html],{type:'text/html'}))}catch(e){}}
+    });
+  },0);
+  return h;
+}
+function evoCrown(pid){
+  var f=evoFlow;if(!f)return;
+  f.winner=pid;
+  evoSay('YOU','CURRENT','"'+evoProf(pid).name+' moves forward"',
+    'current reads back: '+evoProf(pid).name+' is now current for ['+f.contextId+']');
+  evoBankBout(f);
+  evoSay('CURRENT','LEDGER','bout banked','ledger reads back: bout '+f.boutId+' stored, nothing overwritten');
+  f.stage='done';evoRenderLoop();
+  evoToast('👑 '+evoProf(pid).name+' moves forward');
+}
+function evoRejectBoth(){
+  var f=evoFlow;if(!f)return;
+  f.winner=null;
+  evoSay('YOU','CURRENT','"neither is good enough"','current reads back: nothing moves forward — current stays as it was');
+  evoBankBout(f);
+  evoSay('CURRENT','LEDGER','bout banked (no winner)','ledger reads back: bout '+f.boutId+' stored as rejected, nothing overwritten');
+  f.stage='done';evoRenderLoop();
+  evoToast('Bout banked — nothing moved forward.');
+}
+function evoStageDone(f){
+  var h='<div class="evo-stage">5 · bout banked</div>';
+  if(f.winner){
+    h+='<div class="evo-card"><h3>👑 '+evoProf(f.winner).name+' moves forward</h3><p class="evo-small">It is now <b>current</b> for '+evoEsc(f.contextId)+'. The full bout — plans, triage, builds, checks, your call — is in the ledger.</p></div>';
+  }else{
+    h+='<div class="evo-card"><h3>Neither moved forward</h3><p class="evo-small">The bout is banked as rejected — the funnels learn from it, and current stays as it was.</p></div>';
+  }
+  h+='<button class="evo-btn" data-act="again">Run another bout</button>';
+  h+='<button class="evo-btn ghost" data-evo="close">Done</button>';
+  return h;
+}
+/* ---------- tabs: builds / current / ledger ---------- */
+function evoRenderBuildsTab(){
+  var el=document.getElementById('evoBody');if(!el)return;
+  var bs=EVO_REG.builds||[];
+  var h='<div class="evo-card"><h3>🔨 Builds</h3><p class="evo-mut">Every build below is a real app from a finished bout, with its verification.</p></div>';
+  if(!bs.length)h+='<div class="evo-card"><p class="evo-mut">No builds yet. Run the loop — finalists get built for real and land here.</p></div>';
+  bs.slice().reverse().forEach(function(b,ri){
+    var ok=(b.checks||[]).filter(function(c){return /pass$/.test(c)}).length;
+    h+='<div class="evo-card"><div class="evo-row"><div class="evo-grow"><b>'+evoEsc(b.title||'build')+'</b><br><span class="evo-mut">'+evoEsc(b.task||'')+' · '+evoEsc(b.tag||'')+'</span></div></div>'+
+      '<div class="evo-mut">winner: '+(b.winner?evoProf(b.winner).name:'none')+' · '+ok+'/'+(b.checks||[]).length+' checks passed</div>'+
+      '<button class="evo-btn sm ghost" data-act="view-build" data-b="'+ri+'">View</button>'+
+      '<div data-bview="'+ri+'" style="display:none"><iframe class="evo-frame"></iframe></div></div>';
+  });
+  el.innerHTML=h;
+}
+function evoViewBuild(ri){
+  ri=parseInt(ri,10);
+  var bs=(EVO_REG.builds||[]).slice().reverse(),b=bs[ri];if(!b)return;
+  var box=document.querySelector('[data-bview="'+ri+'"]');if(!box)return;
+  var open=box.style.display!=='none';
+  box.style.display=open?'none':'block';
+  if(!open){var fr=box.querySelector('iframe');if(fr){try{fr.src=URL.createObjectURL(new Blob([b.html||''],{type:'text/html'}))}catch(e){}}}
+}
+function evoRenderCurrentTab(){
+  var el=document.getElementById('evoBody');if(!el)return;
+  var keys=Object.keys(EVO_REG.current||{});
+  var h='<div class="evo-card"><h3>👑 Current</h3><p class="evo-mut">The builds you approved to move forward — the live version for each project.</p></div>';
+  if(!keys.length)h+='<div class="evo-card"><p class="evo-mut">Nothing is current yet. Crown a build in the Loop and the winner moves here.</p></div>';
+  keys.forEach(function(k,ki){
+    var c=EVO_REG.current[k],ok=(c.checks||[]).filter(function(x){return x[1]}).length;
+    h+='<div class="evo-card"><h3>👑 '+evoEsc(c.title||'current')+'</h3><p class="evo-mut">'+evoEsc(c.task||'')+'<br>'+evoEsc(k)+'<br>built by '+(c.pid?evoProf(c.pid).name:'?')+' · verified '+ok+'/'+(c.checks||[]).length+'</p>'+
+      '<button class="evo-btn sm ghost" data-act="view-build" data-b="cur:'+ki+'">View</button>'+
+      '<div data-bview="cur:'+ki+'" style="display:none"><iframe class="evo-frame"></iframe></div></div>';
+  });
+  el.innerHTML=h;
+  var boxs=el.querySelectorAll('[data-bview^="cur:"]');
+}
+function evoRenderLedgerTab(){
+  var el=document.getElementById('evoBody');if(!el)return;
+  var h='<div class="evo-card"><h3>🏆 Ledger</h3><p class="evo-mut">Every bout, appended — nothing overwritten. Win rates are measured from real crowns only.</p></div>';
+  var byCtx={};
+  (EVO_REG.entries||[]).forEach(function(e){
+    byCtx[e.context]=byCtx[e.context]||[];
+    byCtx[e.context].push(e.funnel_id+' '+e.wins+'/'+e.runs);
+  });
+  Object.keys(byCtx).forEach(function(k){
+    h+='<div class="evo-card"><b class="evo-small">'+evoEsc(k)+'</b><div class="evo-mut">'+evoEsc(byCtx[k].join(' · '))+'</div></div>';
+  });
+  (EVO_REG.log||[]).slice().reverse().slice(0,20).forEach(function(l){
+    var d='';try{d=new Date(l.t).toLocaleString()}catch(e){}
+    h+='<div class="evo-comm">'+evoEsc(l.note)+'<br><span class="evo-mut">'+evoEsc(d)+'</span></div>';
+  });
+  if(!(EVO_REG.log||[]).length)h+='<div class="evo-card"><p class="evo-mut">No bouts yet.</p></div>';
+  el.innerHTML=h;
+}
+/* current tab view needs current html — patch view-build for cur: */
+var evoViewBuildOrig=evoViewBuild;
+evoViewBuild=function(ri){
+  if(String(ri).indexOf('cur:')===0){
+    var ki=parseInt(String(ri).slice(4),10),keys=Object.keys(EVO_REG.current||{}),c=EVO_REG.current[keys[ki]];if(!c)return;
+    var box=document.querySelector('[data-bview="cur:'+ki+'"]');if(!box)return;
+    var open=box.style.display!=='none';box.style.display=open?'none':'block';
+    if(!open){var fr=box.querySelector('iframe');if(fr){try{fr.src=URL.createObjectURL(new Blob([c.html||''],{type:'text/html'}))}catch(e){}}}
+    return;
+  }
+  evoViewBuildOrig(ri);
+};
+/* ---------- wire the Evolve button into the plan view ---------- */
+function evoWireButton(){
+  var row=document.getElementById('buildRow');
+  if(!row||document.getElementById('evoOpenBtn'))return;
+  var b=document.createElement('button');
+  b.id='evoOpenBtn';b.className='btn';b.style.marginLeft='8px';b.textContent='⚙ Evolve';
+  b.title='Run 3 plans against each other, build the best 2, you pick what moves forward';
+  b.addEventListener('click',evoOpen);
+  var anchor=document.getElementById('planBuild');
+  if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(b,anchor.nextSibling);
+  else row.appendChild(b);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',evoWireButton);
+else evoWireButton();
+setTimeout(evoWireButton,1500);
+window.evoOpen=evoOpen;
+window.evoVerify=evoVerifyBuild;
 })();
 </script>
 </body>
