@@ -2350,9 +2350,9 @@ var appGrid=$('#appGrid'),appF='all';
 function appTile(a,planned){
   var d=planned?document.createElement('div'):document.createElement('button');
   d.className='app'+(planned?' planned':'');
-  d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><span class="txt"><b>'+esc(a[0])+'</b><span class="acat">'+esc(a[3])+'</span></span>'+(planned?'<span class="planned-tag">PLANNED</span>':'<span class="go">→</span>');
+  d.innerHTML='<div class="ai" style="color:'+a[2]+'">'+a[1]+'</div><span class="txt"><b>'+esc(a[0])+'</b><span class="acat">'+esc(a[3])+'</span></span>'+(planned?'<span class="planned-tag">PROJECT</span>':'<span class="go">→</span>');
   if(!planned)d.addEventListener('click',function(){openApp(a[0])});
-  else d.title=a[0]+' is planned — not built yet.';
+  else d.title=a[0]+' is a project — not built yet.';
   d.addEventListener('contextmenu',function(e){e.preventDefault();appTabMenu(e,a[0])});
   return d;
 }
@@ -2378,15 +2378,15 @@ function drawApps(){
     connected.forEach(function(a){appGrid.appendChild(appTile(a,false))});
   }
   if(planned.length||appF==='all'){
-    var h2=document.createElement('div');h2.className='app-sec';h2.textContent='Planned';appGrid.appendChild(h2);
+    var h2=document.createElement('div');h2.className='app-sec';h2.textContent='Projects';appGrid.appendChild(h2);
     var note=document.createElement('div');note.className='app-note';
-    note.textContent='These apps are not built yet. They are placeholders for what is coming — nothing here is broken, there is just nothing to open.';
+    note.textContent='These are projects, not apps — none have a working version yet. Placeholders for what is coming; nothing is broken, there is just nothing to open.';
     appGrid.appendChild(note);
     planned.forEach(function(a){appGrid.appendChild(appTile(a,true))});
     if(appF==='all'){
     var add=document.createElement('div');add.className='app planned';
-    add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><span class="txt"><b>Add App</b></span><span class="planned-tag">PLANNED</span>';
-    add.title='An app library is planned — not built yet.';
+    add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><span class="txt"><b>Add App</b></span><span class="planned-tag">PROJECT</span>';
+    add.title='The app library is a project — not built yet.';
     appGrid.appendChild(add);
     }
   }
@@ -3157,7 +3157,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260926-001';
+window.__MOOR_LIVE_VER='20260926-002';
 (function(){
   var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
   var BUNDLE_URLS=[
