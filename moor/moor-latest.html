@@ -3157,13 +3157,49 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260925-029';
-(function(){setInterval(function(){
-  fetch('https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt?cb='+Date.now(),{cache:'no-store'})
-    .then(function(r){return r.ok?r.text():''})
-    .then(function(t){t=(t||'').trim();if(t&&t!==window.__MOOR_LIVE_VER){location.reload()}})
-    .catch(function(){});
-},90000)})();
+window.__MOOR_LIVE_VER='20260925-030';
+(function(){
+  var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
+  var BUNDLE_URLS=[
+    'https://cdn.jsdelivr.net/gh/bassseamoor/test-submission-portfolio@moor-updates/moor/moor-latest.html',
+    'https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/moor/moor-latest.html'
+  ];
+  function fetchText(url){
+    return fetch(url+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('http '+r.status);
+      return r.text();
+    });
+  }
+  function tryBundle(i, ver){
+    if(i>=BUNDLE_URLS.length) return Promise.reject(new Error('no bundle'));
+    return fetchText(BUNDLE_URLS[i]).then(function(html){
+      if(html.indexOf("__MOOR_LIVE_VER='"+ver+"'")>-1) return html;
+      return tryBundle(i+1, ver);
+    }, function(){ return tryBundle(i+1, ver); });
+  }
+  function check(){
+    fetchText(VER_URL).then(function(t){
+      t=(t||'').trim();
+      if(t && t!==window.__MOOR_LIVE_VER){
+        tryBundle(0, t).then(function(html){
+          try{ sessionStorage.setItem('moor.justUpdated', t); }catch(e){}
+          document.open(); document.write(html); document.close();
+        }, function(){});
+      }
+    }, function(){});
+  }
+  try{
+    var ju=sessionStorage.getItem('moor.justUpdated');
+    if(ju){ sessionStorage.removeItem('moor.justUpdated');
+      var d=document.createElement('div');
+      d.textContent='Updated to '+ju+' \u2713';
+      d.style.cssText='position:fixed;bottom:18px;right:18px;background:#1d2b1d;color:#bfe6bf;padding:10px 16px;border-radius:10px;font:14px system-ui,sans-serif;z-index:99999;border:1px solid #3a5f3a;';
+      if(document.body) document.body.appendChild(d);
+      setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 6000);
+    }
+  }catch(e){}
+  setInterval(check, 90000);
+})();
 
 </script>
 </body>
