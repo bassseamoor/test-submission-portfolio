@@ -282,6 +282,12 @@ input:focus,select:focus{border-color:var(--accent)}
 .plan-picker button.new{border-style:dashed;color:var(--accent);border-color:var(--accent)}
 .plan-picker button.edited::after{content:" \u2022";color:var(--accent)}
 .plan-bar{display:flex;align-items:center;gap:8px;padding:6px 2px 10px;font-size:12px;color:var(--muted)}
+.build-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 2px 10px}
+.build-status{font-size:12px;color:var(--muted)}
+.chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);margin-left:6px}
+.chip.queued{color:#e8d9ae;border-color:#6b5d33}
+.chip.ready{color:#bfe6bf;border-color:#3a5f3a}
+.chip.live{color:#bfe6bf;border-color:#3a5f3a;background:rgba(63,185,80,.12)}
 .plan-bar .btn{padding:5px 12px;font-size:12px}
 .plan-empty{color:var(--muted);font-style:italic}
 #planEditArea{width:100%;min-height:220px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font:inherit;font-size:13px;box-sizing:border-box}
@@ -584,6 +590,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
           <div id="planProj" hidden>
             <div class="plan-picker" id="planPicker"></div>
             <div class="plan-bar" id="planBar" hidden><span id="planBarName"></span><span class="sp"></span><button class="btn" id="planRename">Rename</button><button class="btn" id="planDelete">Delete</button><button class="btn" id="planReset" hidden>Reset to original</button></div>
+            <div class="build-row" id="buildRow" hidden><button class="btn primary" id="planBuild">⚙ Build this plan</button><span class="build-status" id="buildStatus"></span></div>
             <div class="aq-wrap">
               <div class="aq-side" id="planSide"></div>
               <div class="aq-doc" id="planDoc"></div>
@@ -2054,11 +2061,43 @@ async function projRenderList(){
 function projShowDetail(it){
   var det=$('#projDetail');if(!det)return;
   projDetailShow();
+  if(it.localFileId){
+    var _fs=filesLoad(),_x=_fs[it.localFileId];
+    if(!_x){det.innerHTML='<p>File not found.</p>';return}
+    var _ap=dbLoad()[_x.project];
+    var _ic=_x.kind==='packet'?'📦':(_x.kind==='build'?'\u2728':'📝');
+    var _kn=_x.kind==='packet'?'Build packet':(_x.kind==='build'?'Built iteration':'File');
+    det.innerHTML=
+     '<div class="di">'+_ic+'</div><h3>'+esc(_x.name)+'</h3><div class="kind">'+_kn+' \u00b7 on this device</div>'+
+     '<div class="kv"><span>Project</span><span>'+esc(_x.project||'')+'</span></div>'+
+     (_x.kind==='build'?'<div class="kv"><span>Version</span><span>v'+esc(_x.ver||'?')+'</span></div>':'')+
+     (_x.kind==='packet'?'<div class="kv"><span>Status</span><span>'+esc(_x.status||'queued')+'</span></div>':'')+
+     (_x.kind==='packet'?'<div class="kv"><span>Pages</span><span>'+esc(pktPages(_x))+'</span></div>':'')+
+     '<div class="kv"><span>Created</span><span>'+esc(projFmtDate(_x.created))+'</span></div>'+
+     '<button class="btn primary" id="xfOpen" style="width:100%;margin-top:12px">'+(_x.kind==='packet'?'View packet':'Open')+'</button>'+
+     (_x.kind==='build'&&!_ap?'<button class="btn" id="xfApprove" style="width:100%;margin-top:8px">Approve as drawer app</button>':'')+
+     (_x.kind==='build'&&_ap?'<div class="kv"><span>Drawer</span><span>live \u2713</span></div>':'')+
+     '<button class="btn" id="xfDel" style="width:100%;margin-top:8px;color:#ff9090">Delete</button>';
+    (function(_xx){
+      $('#xfOpen').addEventListener('click',function(){openLocalFile(_xx)});
+      var xa=$('#xfApprove');if(xa)xa.addEventListener('click',function(){fileApprove(_xx)});
+      $('#xfDel').addEventListener('click',function(){
+        projConfirm('Delete \u201C'+_xx.name+'\u201D? This can\u2019t be undone.').then(function(ok){
+          if(!ok)return;
+          var f2=filesLoad();delete f2[_xx.id];filesSave(f2);
+          localLoad();
+          Object.keys(localStore.folders).forEach(function(id){var ff=localStore.folders[id];if(ff.fileIds)ff.fileIds=ff.fileIds.filter(function(z){return z!==_xx.id})});
+          localSave();projDetailHide();renderFoldersRefresh();updateBuildStatus();drawApps();toast('Deleted.');
+        });
+      });
+    })(_x);
+    return;
+  }
   if(it.localId){
     var f=localGet(it.localId),kids=f?localKids(it.localId):[],nm=f?f.name:it.name;
     det.innerHTML=
      '<div class="di">📁</div><h3>'+esc(nm)+'</h3><div class="kind">Folder \u00b7 on this device</div>'+
-     '<div class="kv"><span>Items</span><span>'+kids.length+'</span></div>'+
+     '<div class="kv"><span>Items</span><span>'+(kids.length+((f&&(f.fileIds||[]).length)||0))+'</span></div>'+
      '<div class="kv"><span>Created</span><span>'+esc(projFmtDate(it.created))+'</span></div>'+
      '<button class="btn primary" id="pdOpen" style="width:100%;margin-top:12px">Open folder \u2192</button>'+
      '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="pdRename" style="flex:1">Rename</button>'+
@@ -2119,7 +2158,7 @@ function renderLocalGrid(){
 }
 function localTile(f){
   var b=document.createElement('button');b.className='folder';b.dataset.fid=f.id;
-  var n=localKids(f.id).length;
+  var n=localKids(f.id).length+((f.fileIds||[]).length);
   b.innerHTML='<div class="fi" style="color:#7fb2e5">📁</div><b>'+esc(f.name)+'</b><small>'+n+' item'+(n===1?'':'s')+'</small>';
   b.addEventListener('click',function(){projSelect({kind:'folder',localId:f.id,name:f.name,created:f.created},b)});
   b.addEventListener('dblclick',function(){localGo(localPath.concat([f.id]))});
@@ -2136,8 +2175,17 @@ function renderLocalDir(){
   up.addEventListener('click',function(){localGo(localPath.slice(0,-1))});
   list.appendChild(up);
   var kids=localKids(localPath[localPath.length-1]);
-  if(!kids.length){var em=document.createElement('div');em.className='proj-empty';em.innerHTML='<p>This folder is empty.</p>';list.appendChild(em)}
+  var cf0=localGet(localPath[localPath.length-1]);
+  var cfiles0=cf0?folderFiles(cf0):[];
+  if(!kids.length&&!cfiles0.length){var em=document.createElement('div');em.className='proj-empty';em.innerHTML='<p>This folder is empty.</p>';list.appendChild(em)}
   kids.forEach(function(x){list.appendChild(localTile(x))});
+  if(cfiles0.length){
+    var fs=document.createElement('div');fs.className='proj-sec';fs.style.gridColumn='1/-1';fs.textContent='Files';list.appendChild(fs);
+    cfiles0.forEach(function(x){list.appendChild(localFileCard(x))});
+  }
+  var cb=document.createElement('button');cb.className='btn';cb.style.margin='12px 0 4px';cb.textContent='\u21BB Check for builds';
+  cb.addEventListener('click',function(){var cff=localGet(localPath[localPath.length-1]);if(cff)checkBuilds(cff)});
+  host.appendChild(cb);
 }
 function localGo(ids,push){
   projCtx='local';localPath=ids.slice();projDetailHide();
@@ -2184,6 +2232,143 @@ function projNewFolder(){
     toast('Folder created.');
   });
 }
+/* ---------- build loop: plan -> packet -> folder -> approve -> drawer ---------- */
+var FILE_KEY='moor.projectfiles.v1',DB_KEY='moor.drawerbuilds.v1';
+var BUILDS_BASE='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/builds/';
+function filesLoad(){try{var f=JSON.parse(localStorage.getItem(FILE_KEY)||'null');if(f&&typeof f==='object')return f}catch(e){}return{}}
+function filesSave(f){try{localStorage.setItem(FILE_KEY,JSON.stringify(f));return true}catch(e){toast('File too big for device storage.');return false}}
+function dbLoad(){try{var d=JSON.parse(localStorage.getItem(DB_KEY)||'null');if(d&&typeof d==='object')return d}catch(e){}return{}}
+function dbSave(d){try{localStorage.setItem(DB_KEY,JSON.stringify(d))}catch(e){}}
+function planSlug(name){return String(name||'plan').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'plan'}
+function buid(p){return p+Date.now().toString(36)+Math.floor(Math.random()*46656).toString(36)}
+function djb2(s){var h=5381,i;for(i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(36)}
+function pageProvenance(pr){
+  var map={};
+  function all(v){planSections.forEach(function(s){map[s.key]=v})}
+  if(pr.kind!=='baked'){all(pr.kind==='user'?'user':'baked');return map}
+  var ov=bakedOverride(pr.name);
+  if(!ov){all('baked');return map}
+  var base=parsePlan(bakedPlans()[pr.name]||'');
+  function bt(secs,key){for(var i=0;i<secs.length;i++)if(secs[i].key===key)return planBodyText(secs[i]).trim();return ''}
+  planSections.forEach(function(s){map[s.key]=bt(base,s.key)===planBodyText(s).trim()?'baked':'user'});
+  return map;
+}
+/* Golden workflow: the app freezes Page 0 (the blueprint, immutable) and hands
+   the funnel the locked pages plus the missing list. The funnel resolves missing
+   pages, flags conflicts, and compresses to the verdict packet. The builder sees
+   ONLY the verdict: spec, destination, done-criteria. Nothing else. */
+function freezePage0(pr){
+  var pages;
+  if(pr.kind==='aq'){
+    pages=[];
+    AQ_DOCS.forEach(function(sec){sec[1].forEach(function(d){
+      var t=AQ.docs[d[1]]||'';
+      pages.push({key:d[1],title:sec[0]+' / '+d[0],text:t,provenance:'baked',status:t?'locked':'missing'});
+    })});
+  }else{
+    var prov=pageProvenance(pr);
+    pages=planSections.map(function(s){
+      var t=planBodyText(s).trim();
+      return{key:s.key,title:s.title,text:t,provenance:prov[s.key]||'baked',status:t?'locked':'missing'};
+    });
+  }
+  var missing=pages.filter(function(p){return p.status==='missing'}).map(function(p){return{key:p.key,title:p.title}});
+  var canon=JSON.stringify(pages.map(function(p){return[p.key,p.title,p.text,p.provenance,p.status]}));
+  return{packet:2,funnel:'v42',workflow:'golden',project:pr.name,planKind:pr.kind,
+    frozenAt:new Date().toISOString(),hash:djb2(canon),
+    page0:'Frozen blueprint. The funnel never recomputes, re-distills, or re-parses this.',
+    pages:pages,missing:missing,conflicts:[],
+    destination:'Moor drawer app — one self-contained HTML file unless the technical map says otherwise.'};
+}
+function pktPages(x){try{var p=JSON.parse(x.data);var l=(p.pages||[]).filter(function(q){return q.status==='locked'}).length;var m=(p.missing||[]).length;return l+' locked'+(m?', '+m+' missing':'')}catch(e){return'?'}}
+function ensureProjectFolder(name){
+  localLoad();var found=null;
+  Object.keys(localStore.folders).forEach(function(id){var f=localStore.folders[id];if(!f.parent&&f.name===name)found=f});
+  if(found)return found;
+  var id=buid('f'),now=new Date().toISOString();
+  localStore.folders[id]={id:id,name:name,parent:'',created:now,fileIds:[]};
+  localSave();return localStore.folders[id];
+}
+function folderFiles(f){var all=filesLoad(),out=[];((f&&f.fileIds)||[]).forEach(function(id){if(all[id])out.push(all[id])});return out}
+function latestBuildVer(f){var v=0;folderFiles(f).forEach(function(x){if(x.kind==='build'){var n=parseInt(x.ver,10);if(n>v)v=n}});return v}
+function planBuildCur(){
+  var pr=null;planProjects().forEach(function(x){if(x.id===planCurId)pr=x});
+  if(!pr)return;
+  var folder=ensureProjectFolder(pr.name);
+  var packet=freezePage0(pr);
+  var files=filesLoad(),fid=buid('f');
+  files[fid]={id:fid,name:pr.name+' \u2014 build packet.json',kind:'packet',project:pr.name,planKind:pr.kind,
+    status:'queued',created:new Date().toISOString(),data:JSON.stringify(packet)};
+  if(!filesSave(files))return;
+  localLoad();var ff=localGet(folder.id);ff.fileIds=ff.fileIds||[];ff.fileIds.push(fid);localSave();
+  if($('#localGrid'))renderLocalGrid();
+  updateBuildStatus();
+  toast('Build packet queued in folder \u201C'+folder.name+'\u201D \u2014 the funnel runs it next.');
+}
+function updateBuildStatus(){
+  var row=$('#buildRow');if(!row)return;
+  var pr=null;planProjects().forEach(function(x){if(x.id===planCurId)pr=x});
+  if(!pr){row.hidden=true;return}
+  row.hidden=false;
+  var txt='';localLoad();var folder=null;
+  Object.keys(localStore.folders).forEach(function(id){var f=localStore.folders[id];if(!f.parent&&f.name===pr.name)folder=f});
+  if(folder){
+    var queued=0,ready=0;
+    folderFiles(folder).forEach(function(x){if(x.kind==='packet'&&x.status==='queued')queued++;if(x.kind==='build')ready++});
+    var parts=[];
+    if(dbLoad()[pr.name])parts.push('live in drawer \u2713');
+    if(ready)parts.push('v'+latestBuildVer(folder)+' ready in folder');
+    if(queued)parts.push(queued+' packet'+(queued===1?'':'s')+' queued');
+    txt=parts.join(' \u00b7 ');
+  }
+  $('#buildStatus').textContent=txt;
+}
+function localFileCard(x){
+  var c=document.createElement('button');c.className='filecard';c.dataset.xid=x.id;
+  var icon=x.kind==='packet'?'📦':(x.kind==='build'?'\u2728':'📝');
+  var sub=x.kind==='packet'?'packet \u00b7 '+x.status:(x.kind==='build'?'iteration v'+x.ver:'file');
+  c.innerHTML='<div class="thumb">'+icon+'</div><b>'+esc(x.name)+'</b><small>'+esc(sub)+'</small>';
+  c.addEventListener('click',function(){fileSelect(x,c)});
+  return c;
+}
+function fileSelect(x,el){
+  $$('#localList .filecard').forEach(function(z){z.classList.remove('sel')});
+  if(el)el.classList.add('sel');
+  projSelected={kind:'file',localFileId:x.id,name:x.name};
+  projShowDetail(projSelected);
+}
+function openLocalFile(x){
+  var html=x.kind==='packet'
+    ?'<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{background:#0e1512;color:#cfe3d4;font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap;padding:20px;word-break:break-word}</style></head><body>'+esc(x.data)+'</body></html>'
+    :x.data;
+  openAppWindow(x.name,URL.createObjectURL(new Blob([html],{type:'text/html'})));
+}
+function fileApprove(x){
+  var db=dbLoad();
+  db[x.project]={fileId:x.id,icon:'\u2728',color:'#9fe07f',category:'create',approvedAt:new Date().toISOString()};
+  dbSave(db);drawApps();updateBuildStatus();projDetailHide();
+  toast('\u201C'+x.project+'\u201D is now in your drawer.');
+}
+function checkBuilds(folder){
+  if(!folder)return;
+  var slug=planSlug(folder.name),have=latestBuildVer(folder);
+  fetch(BUILDS_BASE+slug+'/version.txt?cb='+Date.now(),{cache:'no-store'})
+    .then(function(r){if(!r.ok)throw 0;return r.text()})
+    .then(function(t){t=(t||'').trim();
+      if(!t||parseInt(t,10)<=have){toast('No new builds \u2014 folder is up to date.');return null}
+      return fetch(BUILDS_BASE+slug+'/v'+t+'.html?cb='+Date.now(),{cache:'no-store'})
+        .then(function(r){if(!r.ok)throw 0;return r.text()})
+        .then(function(html){return{t:t,html:html}})})
+    .then(function(res){if(!res)return;
+      var files=filesLoad(),fid=buid('f');
+      files[fid]={id:fid,name:folder.name+' v'+res.t+'.html',kind:'build',project:folder.name,ver:res.t,
+        created:new Date().toISOString(),data:res.html};
+      if(!filesSave(files))return;
+      localLoad();var ff=localGet(folder.id);ff.fileIds=ff.fileIds||[];ff.fileIds.push(fid);localSave();
+      renderLocalDir();updateBuildStatus();toast('Build v'+res.t+' pulled into this folder.')})
+    .catch(function(){toast('Could not reach the build server.')});
+}
+(function(){var b=$('#planBuild');if(b)b.addEventListener('click',planBuildCur)})();
 /* ---------- project switch ---------- */
 var projTabCur='folders';
 function projTab(which){
@@ -2323,6 +2508,7 @@ function openPlanItem(id){
   buildPlanSide();
   showPlanSection('overview');
   if(c)c.textContent='Plans \u203a '+pr.name;
+  updateBuildStatus();
 }
 function showPlans(name){
   projTab('plans');projDetailHide();
@@ -2712,6 +2898,23 @@ function drawApps(){
   }else{
     list=APPS.filter(function(a){return appF==='all'||a[3]===appF});
   }
+  (function(){
+    var dbm=dbLoad(),fls=filesLoad();
+    list=list.map(function(a){
+      var e=dbm[a[0]],f=e&&fls[e.fileId];
+      if(!a[4]&&e&&f&&f.data){var na=a.slice();na[4]=1;na[1]=e.icon||'\u2728';return na}
+      return a;
+    });
+    Object.keys(dbm).forEach(function(name){
+      var dup=list.some(function(a){return a[0]===name});
+      if(dup)return;
+      var e2=dbm[name],f2=fls[e2.fileId];
+      if(!f2||!f2.data)return;
+      var cat=e2.category||'create';
+      if(appF!=='all'&&appF!==cat)return;
+      list.push([name,e2.icon||'\u2728',e2.color||'#9fe07f',cat,1]);
+    });
+  })();
   if(emptyTab){
     var em=document.createElement('div');em.className='app-empty';
     em.textContent='\u201C'+emptyTab+'\u201D is empty. Right-click any app to add it here.';
@@ -2804,6 +3007,8 @@ var APP_URLS={
   'Moorbymoore':'http://127.0.0.1:39520/?embedded=1&view=source'
 };
 function openApp(name){
+  var _db=dbLoad(),_e=_db[name];
+  if(_e){var _f=filesLoad()[_e.fileId];if(_f&&_f.data){openAppWindow(name,URL.createObjectURL(new Blob([_f.data],{type:'text/html'})));return}}
   if(name==='Settings'){go('settings');return}
   var url=APP_URLS[name];
   if(url){openAppWindow(name,url);return}
@@ -3508,7 +3713,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater (relay v2) ===== */
-window.__MOOR_LIVE_VER='20260926-010';
+window.__MOOR_LIVE_VER='20260926-011';
 (function(){
   // Relay v2: same connections as v1 (VER_URL + first two bundle URLs untouched,
   // same 90s cadence, same document-swap). Changes are append-only:
