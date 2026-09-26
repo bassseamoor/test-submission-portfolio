@@ -280,6 +280,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .plan-picker button{flex:none;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
 .plan-picker button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .plan-picker button.new{border-style:dashed;color:var(--accent);border-color:var(--accent)}
+.plan-picker button.edited::after{content:" \u2022";color:var(--accent)}
 .plan-bar{display:flex;align-items:center;gap:8px;padding:6px 2px 10px;font-size:12px;color:var(--muted)}
 .plan-bar .btn{padding:5px 12px;font-size:12px}
 .plan-empty{color:var(--muted);font-style:italic}
@@ -582,7 +583,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
           </div>
           <div id="planProj" hidden>
             <div class="plan-picker" id="planPicker"></div>
-            <div class="plan-bar" id="planBar" hidden><span id="planBarName"></span><span class="sp"></span><button class="btn" id="planRename">Rename</button><button class="btn" id="planDelete">Delete</button></div>
+            <div class="plan-bar" id="planBar" hidden><span id="planBarName"></span><span class="sp"></span><button class="btn" id="planRename">Rename</button><button class="btn" id="planDelete">Delete</button><button class="btn" id="planReset" hidden>Reset to original</button></div>
             <div class="aq-wrap">
               <div class="aq-side" id="planSide"></div>
               <div class="aq-doc" id="planDoc"></div>
@@ -2193,7 +2194,7 @@ function projTab(which){
   $('#swPlans').classList.toggle('on',which==='plans');
 }
 function showMoor(){projTab('folders');projDetailHide();var c=$('#crumbProj');if(c)c.textContent='Folders'}
-var planCurId=null,planSections=[],planUserId=null;
+var planCurId=null,planSections=[],planUserId=null,planCurKind=null,planBakedName=null;
 function parsePlan(txt){
   var secs=[{key:'overview',title:'Overview',body:''}],cur=secs[0];
   String(txt).split('\n').forEach(function(L){
@@ -2210,13 +2211,14 @@ var UPLANS_KEY='moor.userplans.v1';
 function uplansLoad(){try{var o=JSON.parse(localStorage.getItem(UPLANS_KEY)||'{}');return(o&&typeof o==='object')?o:{}}catch(e){return{}}}
 function uplansSave(o){try{localStorage.setItem(UPLANS_KEY,JSON.stringify(o))}catch(e){}}
 function bakedPlans(){return(window.__moorData&&window.__moorData.projectPlans)||{}}
+function bakedOverride(name){var st=uplansLoad();for(var id in st){if(st[id]&&st[id].overrideOf==='baked:'+name)return st[id]}return null}
 var BLANK_TITLES=['1. What it is',"2. Who it's for",'3. What it does','4. How you use it','5. What you see','6. What it needs','7. Choices & settings','8. Rules it never breaks','9. Done means','10. Build order','11. Technical map','12. How this plan was made'];
 function planProjects(){
   var list=[{id:'aq',name:'Aquarium',kind:'aq'}];
   var bp=bakedPlans();
-  Object.keys(bp).forEach(function(n){list.push({id:'baked:'+n,name:n,kind:'baked'})});
+  Object.keys(bp).forEach(function(n){var ov=bakedOverride(n);list.push({id:'baked:'+n,name:n,kind:'baked',edited:!!ov,uid:ov?ov.id:null})});
   var up=uplansLoad();
-  Object.keys(up).forEach(function(id){if(up[id]&&up[id].name)list.push({id:'user:'+id,name:up[id].name,kind:'user',uid:id})});
+  Object.keys(up).forEach(function(id){if(up[id]&&up[id].name&&!up[id].overrideOf)list.push({id:'user:'+id,name:up[id].name,kind:'user',uid:id})});
   return list;
 }
 function userPlanText(p){
@@ -2234,7 +2236,7 @@ function buildPlanPicker(){
   var nb=document.createElement('button');nb.className='new';nb.textContent='+ New plan';
   nb.addEventListener('click',newUserPlan);pk.appendChild(nb);
   planProjects().forEach(function(pr){
-    var b=document.createElement('button');b.textContent=(pr.kind==='aq'?'\U0001F420 ':'')+pr.name;b.dataset.pid=pr.id;
+    var b=document.createElement('button');b.textContent=(pr.kind==='aq'?'\U0001F420 ':'')+pr.name;b.dataset.pid=pr.id;if(pr.edited)b.classList.add('edited');
     b.addEventListener('click',function(){openPlanItem(pr.id)});pk.appendChild(b);
   });
 }
@@ -2260,7 +2262,7 @@ function showPlanSection(key){
   var html=md(sec.body);
   if(planUserId&&key!=='overview'&&!planBodyText(sec).trim())html='<p class="plan-empty">Not filled in yet.</p>';
   d.innerHTML=html;d.scrollTop=0;
-  if(planUserId&&key!=='overview'){
+  if((planUserId||planCurKind==='baked')&&key!=='overview'){
     var eb=document.createElement('button');eb.className='btn';eb.style.marginTop='12px';eb.textContent='\u270E Edit this blank';
     eb.addEventListener('click',function(){planEditSection(sec.key)});
     d.appendChild(eb);
@@ -2268,7 +2270,19 @@ function showPlanSection(key){
 }
 function planEditSection(key){
   var sec=null;planSections.forEach(function(x){if(x.key===key)sec=x});
-  if(!sec||!planUserId)return;
+  if(!sec)return;
+  if(!planUserId){
+    if(planCurKind!=='baked'||!planBakedName)return;
+    var st0=uplansLoad();
+    var nid='p'+Date.now().toString(36)+Math.floor(Math.random()*46656).toString(36);
+    var bl={};
+    planSections.forEach(function(s){if(s.key!=='overview'){var t=planBodyText(s).trim();if(t)bl['b'+s.key]=t}});
+    st0[nid]={id:nid,name:planBakedName,overrideOf:'baked:'+planBakedName,created:new Date().toISOString(),blanks:bl};
+    uplansSave(st0);
+    buildPlanPicker();openPlanItem('baked:'+planBakedName);
+    toast('Your own copy \u2014 the original stays safe.');
+    planEditSection(key);return;
+  }
   var d=$('#planDoc');if(!d)return;
   d.innerHTML='<h3>'+esc(sec.title)+'</h3><textarea id="planEditArea">'+esc(planBodyText(sec))+'</textarea><div class="row"><button class="btn" id="planEditCancel">Cancel</button><button class="btn primary" id="planEditSave">Save</button></div>';
   var cx=$('#planEditCancel');if(cx)cx.addEventListener('click',function(){showPlanSection(key)});
@@ -2278,7 +2292,7 @@ function planEditSection(key){
     if(!p.blanks)p.blanks={};
     if(v)p.blanks['b'+key]=v;else delete p.blanks['b'+key];
     uplansSave(store);
-    openPlanItem('user:'+planUserId);showPlanSection(key);
+    openPlanItem(planBakedName?('baked:'+planBakedName):('user:'+planUserId));showPlanSection(key);
     toast('Saved.');
   });
   var ta=$('#planEditArea');if(ta)ta.focus();
@@ -2286,17 +2300,25 @@ function planEditSection(key){
 function openPlanItem(id){
   var pr=null;planProjects().forEach(function(x){if(x.id===id)pr=x});
   if(!pr)pr=planProjects()[0];
-  planCurId=pr.id;planUserId=(pr.kind==='user')?pr.uid:null;
+  planCurId=pr.id;planCurKind=pr.kind;planBakedName=(pr.kind==='baked')?pr.name:null;
+  var ov=(pr.kind==='baked')?bakedOverride(pr.name):null;
+  planUserId=(pr.kind==='user')?pr.uid:(ov?ov.id:null);
   $$('#planPicker button').forEach(function(b){b.classList.toggle('on',b.dataset.pid===pr.id)});
   var bar=$('#planBar');
-  if(bar){bar.hidden=pr.kind!=='user';var nm=$('#planBarName');if(nm)nm.textContent=pr.kind==='user'?'Your plan \u2014 stored on this device':'';}
+  if(bar){
+    var showBar=!!planUserId,isOv=!!ov;
+    bar.hidden=!showBar;
+    var nm=$('#planBarName');if(nm)nm.textContent=isOv?'Your edits \u2014 stored on this device. The original is kept.':(showBar?'Your plan \u2014 stored on this device':'');
+    var rn=$('#planRename'),dl=$('#planDelete'),rs=$('#planReset');
+    if(rn)rn.hidden=isOv;if(dl)dl.hidden=isOv;if(rs)rs.hidden=!isOv;
+  }
   var c=$('#crumbProj');
   if(pr.kind==='aq'){
     buildAq();
     if(c)c.textContent='Plans \u203a Aquarium';
     return;
   }
-  var txt=pr.kind==='baked'?bakedPlans()[pr.name]:userPlanText(uplansLoad()[pr.uid]||{name:pr.name,blanks:{}});
+  var txt=ov?userPlanText(ov):(pr.kind==='baked'?bakedPlans()[pr.name]:userPlanText(uplansLoad()[pr.uid]||{name:pr.name,blanks:{}}));
   planSections=parsePlan(txt);
   buildPlanSide();
   showPlanSection('overview');
@@ -2344,9 +2366,21 @@ function planDeleteCur(){
 }
 $('#swMoor').addEventListener('click',showMoor);
 $('#swPlans').addEventListener('click',function(){showPlans()});
+function planResetCur(){
+  if(!planUserId||!planBakedName)return;
+  var st=uplansLoad();var p=st[planUserId];
+  if(!p||p.overrideOf!=='baked:'+planBakedName)return;
+  projConfirm('Discard your edits to \u201C'+planBakedName+'\u201D and restore the original?').then(function(yes){
+    if(!yes)return;
+    var st2=uplansLoad();delete st2[planUserId];uplansSave(st2);
+    buildPlanPicker();openPlanItem('baked:'+planBakedName);
+    toast('Restored the original.');
+  });
+}
 (function(){
   var rn=$('#planRename');if(rn)rn.addEventListener('click',planRenameCur);
   var dl=$('#planDelete');if(dl)dl.addEventListener('click',planDeleteCur);
+  var rs=$('#planReset');if(rs)rs.addEventListener('click',planResetCur);
 })();
 localLoad();
 drawProjects();
@@ -3474,7 +3508,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater ===== */
-window.__MOOR_LIVE_VER='20260926-008';
+window.__MOOR_LIVE_VER='20260926-009';
 (function(){
   var VER_URL='https://raw.githubusercontent.com/bassseamoor/test-submission-portfolio/moor-updates/live/version.txt';
   var BUNDLE_URLS=[
