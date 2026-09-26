@@ -590,7 +590,7 @@ main{inset:var(--top-h) 0 0 0;padding:16px 12px 120px}
           <div id="planProj" hidden>
             <div class="plan-picker" id="planPicker"></div>
             <div class="plan-bar" id="planBar" hidden><span id="planBarName"></span><span class="sp"></span><button class="btn" id="planRename">Rename</button><button class="btn" id="planDelete">Delete</button><button class="btn" id="planReset" hidden>Reset to original</button></div>
-            <div class="build-row" id="buildRow" hidden><button class="btn primary" id="planBuild">⚙ Build this plan</button><span class="build-status" id="buildStatus"></span></div>
+            <div class="build-row" id="buildRow" hidden><button class="btn primary" id="planBuild">⬆ Push</button><span class="build-status" id="buildStatus"></span></div>
             <div class="aq-wrap">
               <div class="aq-side" id="planSide"></div>
               <div class="aq-doc" id="planDoc"></div>
@@ -2368,6 +2368,22 @@ function checkBuilds(folder){
       renderLocalDir();updateBuildStatus();toast('Build v'+res.t+' pulled into this folder.')})
     .catch(function(){toast('Could not reach the build server.')});
 }
+/* bridge for the evolution loop's Push button: save the crowned build as a live folder file */
+window.__moorPushBuild=function(projectName,title,html){
+  try{
+    var folder=ensureProjectFolder(projectName);
+    var ver=latestBuildVer(folder)+1;
+    var files=filesLoad(),fid=buid('f');
+    files[fid]={id:fid,name:projectName+' v'+ver+'.html',kind:'build',project:projectName,ver:String(ver),
+      created:new Date().toISOString(),data:String(html)};
+    if(!filesSave(files))return 0;
+    localLoad();var ff=localGet(folder.id);ff.fileIds=ff.fileIds||[];ff.fileIds.push(fid);localSave();
+    if(document.getElementById('localGrid')&&typeof renderLocalGrid==='function')renderLocalGrid();
+    if(typeof renderLocalDir==='function')renderLocalDir();
+    updateBuildStatus();
+    return ver;
+  }catch(e){return 0}
+};
 (function(){var b=$('#planBuild');if(b)b.addEventListener('click',planBuildCur)})();
 /* ---------- project switch ---------- */
 var projTabCur='folders';
@@ -2501,6 +2517,7 @@ function openPlanItem(id){
   if(pr.kind==='aq'){
     buildAq();
     if(c)c.textContent='Plans \u203a Aquarium';
+    try{window.__evoPlan=null}catch(e){}
     return;
   }
   var txt=ov?userPlanText(ov):(pr.kind==='baked'?bakedPlans()[pr.name]:userPlanText(uplansLoad()[pr.uid]||{name:pr.name,blanks:{}}));
@@ -3714,7 +3731,7 @@ drawSettings();applySet();applyPanel();
 
 <script>
 /* ===== inlined: ui:live-updater (relay v2) ===== */
-window.__MOOR_LIVE_VER='20260926-014';
+window.__MOOR_LIVE_VER='20260926-015';
 (function(){
   // Relay v2: same connections as v1 (VER_URL + first two bundle URLs untouched,
   // same 90s cadence, same document-swap). Changes are append-only:
@@ -4627,20 +4644,42 @@ evoViewBuild=function(ri){
   evoViewBuildOrig(ri);
 };
 /* ---------- wire the Evolve button into the plan view ---------- */
+function evoPushCurrent(){
+  var ep=null;
+  try{ep=window.__evoPlan||null}catch(e){}
+  if(!ep||!ep.id){evoToast('Open a plan first.');return}
+  evoLoadReg();
+  var tag='plan:'+ep.name;
+  var cur=(EVO_REG.current||{})[tag];
+  if(!cur||!cur.html){evoToast('Nothing crowned yet \u2014 run Build first, then crown a winner.');return}
+  var ver=0;
+  try{ver=window.__moorPushBuild?window.__moorPushBuild(ep.name,cur.title,cur.html):0}catch(e){}
+  if(ver)evoToast('Pushed live: '+ep.name+' v'+ver+' \u2014 open it from the project folder.');
+  else evoToast('Push failed \u2014 try again.');
+}
+function evoWirePush(){
+  var b=document.getElementById('planBuild');
+  if(!b||b.dataset.evoPushed)return;
+  b.dataset.evoPushed='1';
+  var nb=b.cloneNode(true);
+  b.parentNode.replaceChild(nb,b);
+  nb.addEventListener('click',evoPushCurrent);
+}
 function evoWireButton(){
   var row=document.getElementById('buildRow');
   if(!row||document.getElementById('evoOpenBtn'))return;
   var b=document.createElement('button');
-  b.id='evoOpenBtn';b.className='btn';b.style.marginLeft='8px';b.textContent='⚙ Evolve';
-  b.title='Run 3 plans against each other, build the best 2, you pick what moves forward';
+  b.id='evoOpenBtn';b.className='btn';b.style.marginLeft='8px';b.textContent='🔨 Build';
+  b.title='Build it: 3 plans compete, 2 get built for real, you pick the winner';
   b.addEventListener('click',evoOpen);
   var anchor=document.getElementById('planBuild');
   if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(b,anchor.nextSibling);
   else row.appendChild(b);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',evoWireButton);
-else evoWireButton();
-setTimeout(evoWireButton,1500);
+function evoWireAll(){evoWireButton();evoWirePush()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',evoWireAll);
+else evoWireAll();
+setTimeout(evoWireAll,1500);
 window.evoOpen=evoOpen;
 window.evoVerify=evoVerifyBuild;
 })();
