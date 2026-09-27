@@ -2953,8 +2953,8 @@ function drawApps(){
     if(appF==='all'){
     var add=document.createElement('div');add.className='app planned';
     add.innerHTML='<div class="ai" style="color:var(--faint)">+</div><span class="txt"><b>Add App</b></span><span class="planned-tag">PROJECT</span>';
-    add.title='The app library is a project — tap to see the plan.';
-    add.addEventListener('click',function(){openProject('Add App')});
+    add.title='Describe a new app — tap to start its blueprint.';
+    add.addEventListener('click',function(){openNewBlueprint()});
     appGrid.appendChild(add);
     }
   }
@@ -3038,6 +3038,176 @@ function openProject(name){
   go('projects');
   showPlans(name);
 }
+
+/* ---------- Add App: open a new blueprint (describe-it door, blueprint v3.0) ----------
+   The Add App tile starts a new app blueprint: 4 quick questions, one builder
+   prompt, paste the AI's answer back, and the app is installed. Plain words only. */
+function openNewBlueprint(){
+  if(!document.getElementById('nbStyle')){
+    var st=document.createElement('style');st.id='nbStyle';
+    st.textContent='.nb-root{height:100%;overflow:auto;padding:18px 20px 24px;box-sizing:border-box;color:var(--ink)}'+
+    '.nb-root h2{margin:0 0 4px;font-size:20px}.nb-root .nb-sub{color:var(--faint);margin:0 0 16px;font-size:13px}'+
+    '.nb-q{margin:0 0 14px}.nb-q label{display:block;font-weight:600;margin-bottom:6px}'+
+    '.nb-q input[type=text]{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--panel);color:var(--ink);font-size:14px}'+
+    '.nb-opts{display:flex;flex-wrap:wrap;gap:8px}.nb-opts button{padding:8px 14px;border-radius:999px;border:1px solid var(--border2);background:var(--panel);color:var(--ink);cursor:pointer;font-size:13px}'+
+    '.nb-opts button.on{background:var(--accent,#7fb2e5);border-color:transparent;color:#0b0f0d;font-weight:700}'+
+    '.nb-root textarea{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--border2);background:var(--panel);color:var(--ink);font-size:13px;padding:10px 12px;font-family:ui-monospace,monospace}'+
+    '.nb-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}'+
+    '.nb-status{margin-top:12px;font-size:13px;color:var(--faint);min-height:20px}'+
+    '.nb-status.ok{color:#9fe07f}.nb-status.bad{color:#e58b8b}'+
+    '.nb-step{font-size:12px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}';
+    document.head.appendChild(st);
+  }
+  var w=openAppWindow('New app','about:blank');
+  var body=w.querySelector('.mwin-body');body.innerHTML='';
+  var root=document.createElement('div');root.className='nb-root';body.appendChild(root);
+  var S={step:1,name:'',oneLine:'',kind:'A handy tool',who:'Just me',prompt:'',answer:''};
+  var KINDS=['A handy tool','A game','Something to watch','Something to make'];
+  var WHOS=['Just me','Me and my family','Anyone'];
+  function el(html){var d=document.createElement('div');d.innerHTML=html;return d.firstChild}
+  function btn(label,primary){var b=document.createElement('button');b.className='btn'+(primary?' primary':'');b.textContent=label;return b}
+  function status(msg,cls){var s=root.querySelector('.nb-status');if(s){s.textContent=msg;s.className='nb-status '+(cls||'')}}
+  function optsRow(list,cur,cb){
+    var d=document.createElement('div');d.className='nb-opts';
+    list.forEach(function(o){
+      var b=document.createElement('button');b.type='button';b.textContent=o;if(o===cur)b.classList.add('on');
+      b.addEventListener('click',function(){cb(o);d.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x.textContent===o)})});
+      d.appendChild(b);
+    });
+    return d;
+  }
+  function qWrap(label,inner){
+    var d=document.createElement('div');d.className='nb-q';
+    var l=document.createElement('label');l.textContent=label;d.appendChild(l);d.appendChild(inner);return d;
+  }
+  function builderPrompt(){
+    return 'Build ONE self-contained HTML file from ONLY this description. Do not add features outside it.\n\n'+
+    'THE APP: '+S.name+' — '+S.oneLine+'\nKIND: '+S.kind+'\nWHO IT IS FOR: '+S.who+'\n\n'+
+    'Do it in this order:\n'+
+    '1. Write a 12-section blueprint for the app: 1. What it is, 2. Who it is for, 3. What it does, 4. How you use it, 5. What you see, 6. What it needs, 7. Choices & settings, 8. Rules it never breaks, 9. Done means, 10. Build order, 11. Technical map, 12. How this plan was made.\n'+
+    '2. Then build version 1 as ONE self-contained HTML file.\n\n'+
+    'Answer with exactly two fenced code blocks and nothing else:\n'+
+    '```blueprint\n(the 12-section blueprint, with ## 1. through ## 12. headings)\n```\n'+
+    '```html\n(the complete app, one file)\n```\n\n'+
+    'HARD RULES for the app file:\n'+
+    '- Single HTML file. Vanilla JS and CSS only. No external requests.\n'+
+    '- Zero console errors on load.\n'+
+    '- Storage: localStorage can THROW on some setups — wrap EVERY storage access in try/catch with an in-memory fallback. Never call it bare.\n'+
+    '- No placeholder, lorem ipsum, TODO, "coming soon", or dummy text anywhere.\n'+
+    '- A real <title> and a visible heading.';
+  }
+  function render(){
+    root.innerHTML='';
+    if(S.step===1)renderQuiz();
+    else if(S.step===2)renderPrompt();
+    else renderPaste();
+  }
+  function renderQuiz(){
+    root.appendChild(el('<div class="nb-step">New blueprint · describe it</div>'));
+    root.appendChild(el('<h2>Describe your app</h2>'));
+    root.appendChild(el('<p class="nb-sub">Four quick questions. Then you get a builder prompt for it.</p>'));
+    var nIn=document.createElement('input');nIn.type='text';nIn.value=S.name;nIn.maxLength=60;
+    nIn.addEventListener('input',function(){S.name=nIn.value;goBtn.disabled=!(nIn.value.trim()&&oIn.value.trim())});
+    root.appendChild(qWrap("What's it called?",nIn));
+    var oIn=document.createElement('input');oIn.type='text';oIn.value=S.oneLine;oIn.maxLength=140;
+    oIn.addEventListener('input',function(){S.oneLine=oIn.value;goBtn.disabled=!(nIn.value.trim()&&oIn.value.trim())});
+    root.appendChild(qWrap('What does it do? One line is enough.',oIn));
+    root.appendChild(qWrap('What kind of thing is it?',optsRow(KINDS,S.kind,function(o){S.kind=o})));
+    root.appendChild(qWrap('Who is it for?',optsRow(WHOS,S.who,function(o){S.who=o})));
+    var row=document.createElement('div');row.className='nb-row';
+    var goBtn=btn('Write my builder prompt',true);goBtn.disabled=!(S.name.trim()&&S.oneLine.trim());
+    goBtn.addEventListener('click',function(){S.prompt=builderPrompt();S.step=2;render()});
+    row.appendChild(goBtn);
+    root.appendChild(row);
+    root.appendChild(el('<div class="nb-status"></div>'));
+    setTimeout(function(){nIn.focus()},50);
+  }
+  function renderPrompt(){
+    root.appendChild(el('<div class="nb-step">New blueprint · your builder prompt</div>'));
+    root.appendChild(el('<h2>'+esc(S.name)+'</h2>'));
+    root.appendChild(el('<p class="nb-sub">Copy this prompt, paste it into any AI you use. Then paste the answer back below.</p>'));
+    var ta=document.createElement('textarea');ta.rows=14;ta.readOnly=true;ta.value=S.prompt;root.appendChild(ta);
+    var row=document.createElement('div');row.className='nb-row';
+    var cp=btn('Copy prompt',true);
+    cp.addEventListener('click',function(){
+      function done(){status('Copied. Paste it into your AI, then paste the answer back below.','ok')}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(S.prompt).then(done,function(){fallback()})}
+      else fallback();
+      function fallback(){ta.select();try{document.execCommand('copy');done()}catch(e){status('Copy did not work — select the text and copy it by hand.','bad')}}
+    });
+    var back=btn('Back');
+    back.addEventListener('click',function(){S.step=1;render()});
+    var next=btn('I have the answer — continue',true);
+    next.addEventListener('click',function(){S.step=3;render()});
+    row.appendChild(cp);row.appendChild(next);row.appendChild(back);
+    root.appendChild(row);
+    root.appendChild(el('<div class="nb-status"></div>'));
+  }
+  function parseBlocks(t){
+    var blocks=[],re=/```(\w*)\s*\n([\s\S]*?)```/g,m;
+    while((m=re.exec(t))){blocks.push({lang:(m[1]||'').toLowerCase(),code:m[2]})}
+    return blocks;
+  }
+  function parseBlueprintSections(mdtext){
+    var blanks={},cur=0,buf=[];
+    String(mdtext).split('\n').forEach(function(l){
+      var m=l.match(/^#{1,3}\s*(\d{1,2})[\.\):\-]?\s/);
+      if(m){if(cur)blanks['b'+cur]=buf.join('\n').replace(/^#{1,3}[^\n]*\n/,'').trim();cur=parseInt(m[1],10);buf=[l]}
+      else if(cur)buf.push(l);
+    });
+    if(cur)blanks['b'+cur]=buf.join('\n').replace(/^#{1,3}[^\n]*\n/,'').trim();
+    return blanks;
+  }
+  function renderPaste(){
+    root.appendChild(el('<div class="nb-step">New blueprint · install it</div>'));
+    root.appendChild(el('<h2>'+esc(S.name)+'</h2>'));
+    root.appendChild(el('<p class="nb-sub">Paste the AI\u2019s answer back here — it should hold two blocks: the blueprint and the app. Then install.</p>'));
+    var ta=document.createElement('textarea');ta.rows=10;ta.value=S.answer;
+    ta.addEventListener('input',function(){S.answer=ta.value});
+    root.appendChild(ta);
+    var row=document.createElement('div');row.className='nb-row';
+    var inst=btn('Install the result',true);
+    inst.addEventListener('click',function(){install(ta.value)});
+    var back=btn('Back');
+    back.addEventListener('click',function(){S.step=2;render()});
+    row.appendChild(inst);row.appendChild(back);
+    root.appendChild(row);
+    var stEl=el('<div class="nb-status"></div>');root.appendChild(stEl);
+  }
+  function install(text){
+    var blocks=parseBlocks(text||'');
+    var appBlock=null,bpBlock=null;
+    blocks.forEach(function(b){
+      var isApp=/<html|<!doctype/i.test(b.code);
+      if(isApp&&!appBlock)appBlock=b;else if(!isApp&&!bpBlock)bpBlock=b;
+    });
+    if(!appBlock){status('I could not find the app in that paste. The answer should have exactly two fenced blocks: the blueprint and the app.','bad');return}
+    var html=appBlock.code.trim();
+    if(!/^</.test(html)){status('That app block does not look like an app file. Try pasting the answer again.','bad');return}
+    var name=(S.name||'New app').trim().slice(0,60)||'New app';
+    var db=dbLoad(),base=name,n=2;
+    while(db[name]){name=base+' '+n;n++}
+    var fid='f'+Date.now().toString(36)+Math.floor(Math.random()*46656).toString(36);
+    var fl=filesLoad();fl[fid]={data:html,name:name};
+    if(!filesSave(fl)){status('The app file is too big for device storage.','bad');return}
+    db[name]={fileId:fid,icon:'\u2728',color:'#9fe07f',category:'create'};
+    dbSave(db);
+    if(bpBlock){
+      var blanks=parseBlueprintSections(bpBlock.code);
+      if(!Object.keys(blanks).length)blanks={b1:bpBlock.code.trim()};
+      var pid='p'+Date.now().toString(36)+Math.floor(Math.random()*46656).toString(36);
+      var store=uplansLoad();
+      store[pid]={id:pid,name:name+' \u2014 blueprint',created:new Date().toISOString(),blanks:blanks};
+      uplansSave(store);
+    }
+    try{drawApps()}catch(e){}
+    status('\u201C'+name+'\u201D is in your drawer'+(bpBlock?' and its blueprint is in Projects':'')+'. Opening it now.','ok');
+    toast('\u201C'+name+'\u201D is in your drawer.');
+    setTimeout(function(){try{openApp(name)}catch(e){}},600);
+  }
+  render();
+}
+
 /* ---------- custom tabs ---------- */
 var BUILTIN_TABS=[['all','All'],['create','Create'],['tools','Tools'],['media','Media'],['dev','Dev']];
 var TABS_KEY='moor.tabs.v1',TABAPPS_KEY='moor.tabapps.v1';
@@ -3734,7 +3904,7 @@ drawSettings();applySet();applyPanel();
 </script>
 
 <script>/* ===== inlined: ui:live-updater (relay v3) ===== */
-window.__MOOR_LIVE_VER='20260926-020';
+window.__MOOR_LIVE_VER='20260926-021';
 (function(){
   // Relay v3: same connections as v2 (VER_URL + three bundle URLs, same document-swap).
   // Changes vs v2, all append-only:
