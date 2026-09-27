@@ -3734,7 +3734,7 @@ drawSettings();applySet();applyPanel();
 </script>
 
 <script>/* ===== inlined: ui:live-updater (relay v3) ===== */
-window.__MOOR_LIVE_VER='20260926-018';
+window.__MOOR_LIVE_VER='20260926-019';
 (function(){
   // Relay v3: same connections as v2 (VER_URL + three bundle URLs, same document-swap).
   // Changes vs v2, all append-only:
@@ -3986,69 +3986,7 @@ function evoRoute(domain,contextId){
 }
 
 /* ---------- deterministic quiz runner (quick auto-fill path) ---------- */
-function evoAnsMap(a){var m={};a.forEach(function(x){m[x.id]=x.text});return m}
-function evoApplicable(Q,am){
-  if(Q.cond){var v=am[Q.cond.qid];if(v===undefined)return false;return Array.isArray(Q.cond.is)?Q.cond.is.indexOf(v)>=0:v===Q.cond.is}
-  if(Q.condNot){var w=am[Q.condNot.qid];if(w===undefined)return true;return Array.isArray(Q.condNot.is)?Q.condNot.is.indexOf(w)<0:w!==Q.condNot.is}
-  return true}
-function evoSmartAuto(Q,am){return(Q.auto||0)%((Q.opts||[]).length||1)}
 function evoTaskWords(task){return String(task||'').toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>3})}
-function evoOptIndex(Q,am,strategy,task){
-  var n=Q.opts.length,smart=evoSmartAuto(Q,am);
-  if(strategy==='quick')return smart;
-  if(strategy==='crosscheck'){var words=evoTaskWords(task),best=smart,bs=-1;
-    Q.opts.forEach(function(o,ix){var t=o.toLowerCase(),s=0;words.forEach(function(w){if(t.indexOf(w)>=0)s++});if(s>bs){bs=s;best=ix}});return best}
-  if(strategy==='safe'){
-    if(Q.id==='never'){var ix=Q.opts.findIndex(function(o){return o.indexOf('Lose my data')===0});return ix>=0?ix:smart}
-    if(Q.id==='platform'&&/offline|no internet|plane/.test(String(task).toLowerCase())){var jx=Q.opts.findIndex(function(o){return o.indexOf('One offline file')===0});return jx>=0?jx:smart}
-    return smart}
-  if(strategy==='novel')return(smart+2)%n;
-  return smart}
-function evoOpenFill(Q,am,strategy,task){
-  if(Q.genName){var words=String(task||'').replace(/[^a-zA-Z ]/g,'').split(/\s+/).filter(function(w){return w.length>2});return(words.slice(0,2).join(' ')||'Nova')}
-  if(Q.id==='core'){var t=String(task||'').trim();if(t.length>8)return t.length>90?t.slice(0,90):t}
-  return Q.seeds[evoSmartAuto(Q,am)%Q.seeds.length]}
-function evoDetectConflicts(task,answers){
-  var t=' '+String(task).toLowerCase()+' ',out=[];
-  function get(id){for(var i=0;i<answers.length;i++)if(answers[i].id===id)return answers[i].text;return ''}
-  if(/offline|no internet|\bplane\b/.test(t)&&get('platform')&&get('platform')!=='One offline file')
-    out.push({id:'platform',fill:get('platform'),want:'One offline file',why:'task says offline'});
-  if(/no ads|without ads|ad-free/.test(t)&&get('never')&&get('never')!=='Show ads')
-    out.push({id:'never',fill:get('never'),want:'Show ads',why:'task says no ads'});
-  return out}
-function evoRunFunnel(pid,task){
-  var p=evoProf(pid),R=p.run,answers=[],conflicts=[];
-  var order=R.order||EVO_QUESTIONS.map(function(q){return q.id});
-  var am=evoAnsMap(answers);
-  order.forEach(function(qid){
-    var Q=null;EVO_QUESTIONS.forEach(function(q){if(q.id===qid)Q=q});if(!Q)return;
-    if(!evoApplicable(Q,am))return;
-    if(Q.cond&&R.follow===false)return;
-    if(Q.cond&&R.follow==='risk'&&!/money|pay|shar|live|publish|send|checkout|store/.test(String(task).toLowerCase()))return;
-    var text;
-    if(Q.genName)text=evoOpenFill(Q,am,R.fill,task);
-    else if(Q.open)text=evoOpenFill(Q,am,R.fill,task);
-    else text=Q.opts[evoOptIndex(Q,am,R.fill,task)].split('|')[0];
-    answers.push({id:Q.id,text:text,by:'filled',via:'auto-fill'});
-    am[Q.id]=text;
-  });
-  evoDetectConflicts(task,answers).forEach(function(c){
-    var a=null;answers.forEach(function(x){if(x.id===c.id)a=x});
-    if(R.conflict==='flag')conflicts.push({id:c.id,why:c.why,action:'noted — kept: '+c.fill});
-    else if(R.conflict==='hold'){a.text=c.want;a.held=true;conflicts.push({id:c.id,why:c.why,action:'task wins — changed to: '+c.want})}
-    else if(R.conflict==='freeze')conflicts.push({id:c.id,why:c.why,action:'kept both: '+c.fill+' / '+c.want});
-    else if(R.conflict==='option'){a.text=c.want;conflicts.push({id:c.id,why:c.why,action:'task side taken: '+c.want})}
-  });
-  var keep=R.compress==='loose'?['kind','core','layout','platform']:answers.map(function(a){return a.id});
-  var spec={};answers.forEach(function(a){if(keep.indexOf(a.id)>=0)spec[a.id]=a.text});
-  var packet={spec:spec,destination:'one self-contained HTML file',doneCriteria:(R.compress==='loose'?EVO_DONE.slice(0,3):EVO_DONE.slice()),answers:answers.map(function(a){return{id:a.id,text:a.text,by:a.by,via:a.via}})};
-  if(R.compress==='medium')packet.summary='Summary: '+answers.length+' answers locked, '+conflicts.length+' conflicts closed. Build it.';
-  var checks=evoPacketChecks(packet,task);
-  return{pid:pid,packet:packet,answers:answers,conflicts:conflicts,
-    stats:{asked:answers.length,conflicts:conflicts.length},
-    passRate:checks.filter(function(c){return c[1]}).length/checks.length,checks:checks};
-}
-
 /* ---------- the 6 packet gates (never weakened) ---------- */
 function evoSpecAnswersTask(packet,task){
   var keys=String(task||'').toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>3&&!EVO_STOP[w]});
@@ -4085,34 +4023,6 @@ function evoQuizQuestionsText(){
     if(q.open)return 'Q: core — The ONE thing it must do brilliantly? (one sentence, restate the task below)';
     return 'Q: '+q.id+' — '+q.q+' Choose one: '+q.opts.map(function(o){return o.split('|')[0]}).join(' / ');
   }).join('\n')}
-function evoFunnelPrompt(pid,task,context){
-  var p=evoProf(pid);
-  return p.prompt+'\n\nTHE TASK (frozen — answer it, never change it):\n'+task+
-   '\n\nBACKGROUND (read-only):\n'+context+
-   '\n\nQUESTIONS:\n'+evoQuizQuestionsText()+
-   '\n\nRETURN JSON ONLY — no explanations, no markdown fences, just the JSON:\n'+
-   '{\n  "spec": {"kind": "...", "core": "...", "layout": "...", "platform": "...", "feel": "...", "who": "...", "never": "..."},\n'+
-   '  "destination": "one self-contained HTML file",\n'+
-   '  "doneCriteria": ["check 1 (under 140 chars)", "check 2", "check 3"],\n'+
-   '  "answers": [{"id": "kind", "text": "..."}, {"id": "core", "text": "..."}]\n}'+
-   '\nRules: every answer must serve the task; at least 3 doneCriteria, each checkable and under 140 characters; include every question you answered in "answers".'}
-function evoBuildPrompt(packet,task){
-  var specLines=Object.keys(packet.spec).map(function(k){return k+': '+packet.spec[k]}).join('\n');
-  var crit=(packet.doneCriteria||[]).map(function(c){return '- '+c}).join('\n');
-  /* The exact rubric evoVerifyBuild grades against — the builder must see it. */
-  var keys=String((packet.spec&&(packet.spec.core||''))+' '+(packet.spec&&(packet.spec.kind||''))).toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>4&&!EVO_STOP[w]}).slice(0,4);
-  var need=Math.max(1,Math.ceil(keys.length/2));
-  var grade='\n\nHOW YOU WILL BE GRADED (an automated checker runs these 5 tests on your file — every one must pass):\n'+
-   '1. Zero errors on load — no JS errors or exceptions, nothing thrown.\n'+
-   '2. Renders real content — the page\'s visible text must be longer than 50 characters.\n'+
-   '3. Matches the plan — '+(keys.length?('the page\'s visible text must contain at least '+need+' of these exact words: '+keys.join(', ')+'. These words come from the plan above; work them into visible sentences verbatim (a short line restating what the app does works). Inflections do NOT count ("tap" does not match "tapping").'):'no keywords — automatically passes')+'\n'+
-   '4. No placeholder text — the words lorem, placeholder, TODO, "coming soon", "dummy text" must not appear in text or markup.\n'+
-   '5. Has a real title — a non-empty <title>, not "Untitled" or "Document".';
-  return 'Build ONE self-contained HTML file from ONLY this plan. Do not add features outside it.\n\nTHE TASK: '+task+
-   '\n\nSPEC:\n'+specLines+
-   '\n\nDESTINATION: '+packet.destination+
-   '\n\nDONE CHECKS (every one must be visibly true in the app):\n'+crit+grade+
-   '\n\nHARD RULES:\n- Single HTML file. Vanilla JS and CSS only. No external requests.\n- Zero console errors on load.\n- Storage: localStorage can THROW on some setups — wrap EVERY storage access in try/catch with an in-memory fallback object. Never call it bare.\n- No placeholder, lorem ipsum, TODO, "coming soon", or dummy text anywhere.\n- A real <title> and a visible heading.\n- Return ONLY the HTML — no explanations, no fences.'}
 function evoFunnelPromptAll(fids,task,context){
   var per=fids.map(function(pid){
     var p=evoProf(pid),order=(p.run&&p.run.order)||EVO_QUESTIONS.map(function(q){return q.id});
@@ -4359,12 +4269,8 @@ function evoOnClick(ev){
   if(!aEl||!evoFlow)return;
   var a=aEl.getAttribute('data-act'),t=aEl;
   var pid=t.getAttribute('data-pid');
-  if(a==='copy-funnel')evoCopy(evoFunnelPrompt(pid,evoFlow.task,evoFlow.contextText));
-  else if(a==='copy-funnel-all')evoCopy(evoFunnelPromptAll(evoFlow.route.fids,evoFlow.task,evoFlow.contextText));
+  if(a==='copy-funnel-all')evoCopy(evoFunnelPromptAll(evoFlow.route.fids,evoFlow.task,evoFlow.contextText));
   else if(a==='use-paste-all')evoUsePasteAll(t);
-  else if(a==='ask-funnel')evoAskFunnel(pid,t);
-  else if(a==='use-paste')evoUsePaste(pid,t);
-  else if(a==='auto-funnel')evoAutoFunnel(pid,t);
   else if(a==='triage')evoDoTriage();
   else if(a==='copy-build')evoCopy(evoBuildPrompt(evoFlowPacket(pid),evoFlow.task));
   else if(a==='ask-build')evoAskBuild(pid,t);
@@ -4455,32 +4361,21 @@ function evoRenderLoop(){
   el.innerHTML=h;
   window.__evoFlow=f;
 }
-function evoFunnelCard(f,pid){
-  var p=evoProf(pid),r=null;
-  f.results.forEach(function(x){if(x.pid===pid)r=x});
-  var st=r?(r.passRate===1?'ok':'bad'):'wait';
-  var pill=st==='ok'?'<span class="evo-pill evo-ok">✓ plan ready</span>':st==='bad'?'<span class="evo-pill evo-bad">✗ needs a fix</span>':'<span class="evo-pill evo-wait">waiting</span>';
-  var h='<div class="evo-card" data-fc="'+pid+'"><div class="evo-row"><span class="evo-dot" style="background:'+p.color+'"></span><div class="evo-grow"><b>'+p.name+'</b> <span class="evo-mut">'+p.arch+'</span></div>'+pill+'</div>'+
-    '<p class="evo-mut">'+evoEsc(p.blurb)+'</p>';
-  if(f.mode==='key'&&evoAutoSupported(evoAIState().judge||'groq')){
-    h+='<button class="evo-btn sm" data-act="ask-funnel" data-pid="'+pid+'">✦ Ask my AI</button><button class="evo-btn sm ghost" data-act="copy-funnel" data-pid="'+pid+'">📋 Copy instead</button>';
-  }else{
-    h+='<button class="evo-btn sm" data-act="copy-funnel" data-pid="'+pid+'">📋 Copy prompt</button>';
-  }
-  h+='<textarea class="evo-ta" data-paste="'+pid+'" placeholder="Paste the AI\'s answer here…"></textarea>'+
-    '<div class="evo-row"><button class="evo-btn sm ghost" data-act="use-paste" data-pid="'+pid+'">Use this answer</button><button class="evo-link" data-act="auto-funnel" data-pid="'+pid+'">quick auto-fill instead</button></div>'+
-    '<div data-fres="'+pid+'">'+(r?evoPacketSummary(r):'')+'</div></div>';
-  return h;
-}
 function evoFunnelCardAll(f){
   var names=f.route.fids.map(function(id){return evoProf(id).name}).join(', ');
   var h='<div class="evo-card" data-fall><div class="evo-row"><div class="evo-grow"><b>⚡ All three at once</b></div><span class="evo-pill evo-ok">one paste</span></div>'+
-    '<p class="evo-mut">One prompt, one paste into your AI, one paste back — plans '+names+' in a single round trip. The cards below fill in automatically.</p>'+
+    '<p class="evo-mut">One prompt, one paste into your AI, one paste back — plans '+names+' in a single round trip.</p>'+
     '<button class="evo-btn sm" data-act="copy-funnel-all">📋 Copy combined prompt</button>'+
     '<textarea class="evo-ta" data-fallpaste placeholder="Paste the AI\'s answer (all three plans) here…"></textarea>'+
     '<div class="evo-row"><button class="evo-btn sm ghost" data-act="use-paste-all">Use these answers</button></div>'+
-    '<div data-fallres></div></div>';
-  return h;
+    '<div data-fallres></div>';
+  f.route.fids.forEach(function(pid){
+    var r=null;f.results.forEach(function(x){if(x.pid===pid)r=x});
+    if(!r)return;
+    var p=evoProf(pid),pill=r.passRate===1?'<span class="evo-pill evo-ok">✓ plan ready</span>':'<span class="evo-pill evo-bad">✗ needs a fix</span>';
+    h+='<div class="evo-row" style="margin-top:10px"><span class="evo-dot" style="background:'+p.color+'"></span><div class="evo-grow"><b>'+p.name+'</b></div>'+pill+'</div>'+evoPacketSummary(r);
+  });
+  return h+'</div>';
 }
 function evoPacketSummary(r){
   var bad=r.checks.filter(function(c){return !c[1]});
@@ -4497,25 +4392,9 @@ function evoStageFunnels(f){
   h+='<p class="evo-small">Router: <b>'+f.route.fids.map(function(id){return evoProf(id).name}).join(' vs ')+'</b> <span class="evo-mut">— '+evoEsc(f.route.why)+'</span></p>';
   h+=evoFunnelCardAll(f);
   h+=evoModePicker();
-  f.route.fids.forEach(function(pid){h+=evoFunnelCard(f,pid)});
   var ready=f.results.filter(function(r){return r.passRate===1}).length;
   h+='<button class="evo-btn" data-act="triage" '+(ready>=3?'':'disabled')+'>Sort into build slots ('+ready+'/3 plans ready)</button>';
   return h;
-}
-function evoUsePaste(pid,btn){
-  var f=evoFlow,card=btn.closest('[data-fc]'),ta=card.querySelector('[data-paste]');
-  var obj=evoExtractJSON(ta.value);
-  var box=card.querySelector('[data-fres]');
-  if(!obj){box.innerHTML='<div class="evo-check"><span class="evo-fail">✗</span> Could not find a plan in that paste. Copy the prompt again and make sure the AI returns the JSON.</div>';return}
-  var pkt=evoNormalizePacket(obj);
-  if(!pkt){box.innerHTML='<div class="evo-check"><span class="evo-fail">✗</span> That JSON is not a plan (needs spec, destination, doneCriteria). Paste again.</div>';return}
-  var checks=evoPacketChecks(pkt,f.task);
-  var r={pid:pid,packet:pkt,answers:pkt.answers,conflicts:[],stats:{asked:pkt.answers.length,conflicts:0},
-    passRate:checks.filter(function(c){return c[1]}).length/checks.length,checks:checks,source:'pasted'};
-  f.results=f.results.filter(function(x){return x.pid!==pid});f.results.push(r);
-  evoSay('FUNNEL '+evoProf(pid).name,'TRIAGE','plan ready: '+pkt.answers.length+' answers via your AI',
-    'triage reads back: plan '+(r.passRate===1?'valid — all 6 checks pass':'INVALID — '+r.checks.filter(function(c){return !c[1]}).map(function(c){return c[0]}).join(', ')));
-  evoRenderLoop();
 }
 function evoUsePasteAll(btn){
   var f=evoFlow,card=btn.closest('[data-fall]'),ta=card.querySelector('[data-fallpaste]'),box=card.querySelector('[data-fallres]');
@@ -4539,23 +4418,6 @@ function evoUsePasteAll(btn){
   });
   if(bad.length){fail('These plans were not valid (need spec, destination, doneCriteria): '+bad.join(', ')+'. Paste again.');return}
   evoRenderLoop();
-}
-function evoAutoFunnel(pid){
-  var f=evoFlow,r=evoRunFunnel(pid,f.task);r.source='auto';
-  f.results=f.results.filter(function(x){return x.pid!==pid});f.results.push(r);
-  evoSay('FUNNEL '+evoProf(pid).name,'TRIAGE','plan ready: '+r.stats.asked+' answers via quick auto-fill',
-    'triage reads back: plan '+(r.passRate===1?'valid':'INVALID')+' — auto-filled, no AI judgment involved');
-  evoRenderLoop();
-}
-function evoAskFunnel(pid,btn){
-  btn.disabled=true;btn.textContent='Asking…';
-  var f=evoFlow;
-  evoCallProvider(evoFunnelPrompt(pid,f.task,f.contextText),function(text,err){
-    btn.disabled=false;btn.textContent='✦ Ask my AI';
-    if(err){evoToast(err);return}
-    var card=btn.closest('[data-fc]');if(card){var ta=card.querySelector('[data-paste]');if(ta)ta.value=text}
-    evoUsePaste(pid,btn);
-  });
 }
 function evoFlowPacket(pid){var r=null;evoFlow.results.forEach(function(x){if(x.pid===pid)r=x});return r?r.packet:{spec:{},destination:'',doneCriteria:[]}}
 function evoDoTriage(){
