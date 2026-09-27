@@ -3734,7 +3734,7 @@ drawSettings();applySet();applyPanel();
 </script>
 
 <script>/* ===== inlined: ui:live-updater (relay v3) ===== */
-window.__MOOR_LIVE_VER='20260926-019';
+window.__MOOR_LIVE_VER='20260926-020';
 (function(){
   // Relay v3: same connections as v2 (VER_URL + three bundle URLs, same document-swap).
   // Changes vs v2, all append-only:
@@ -4023,6 +4023,24 @@ function evoQuizQuestionsText(){
     if(q.open)return 'Q: core — The ONE thing it must do brilliantly? (one sentence, restate the task below)';
     return 'Q: '+q.id+' — '+q.q+' Choose one: '+q.opts.map(function(o){return o.split('|')[0]}).join(' / ');
   }).join('\n')}
+function evoBuildPrompt(packet,task){
+  var specLines=Object.keys(packet.spec).map(function(k){return k+': '+packet.spec[k]}).join('\n');
+  var crit=(packet.doneCriteria||[]).map(function(c){return '- '+c}).join('\n');
+  /* The exact rubric evoVerifyBuild grades against — the builder must see it. */
+  var keys=String((packet.spec&&(packet.spec.core||''))+' '+(packet.spec&&(packet.spec.kind||''))).toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>4&&!EVO_STOP[w]}).slice(0,4);
+  var need=Math.max(1,Math.ceil(keys.length/2));
+  var grade='\n\nHOW YOU WILL BE GRADED (an automated checker runs these 5 tests on your file — every one must pass):\n'+
+   '1. Zero errors on load — no JS errors or exceptions, nothing thrown.\n'+
+   '2. Renders real content — the page\'s visible text must be longer than 50 characters.\n'+
+   '3. Matches the plan — '+(keys.length?('the page\'s visible text must contain at least '+need+' of these exact words: '+keys.join(', ')+'. These words come from the plan above; work them into visible sentences verbatim (a short line restating what the app does works). Inflections do NOT count ("tap" does not match "tapping").'):'no keywords — automatically passes')+'\n'+
+   '4. No placeholder text — the words lorem, placeholder, TODO, "coming soon", "dummy text" must not appear in text or markup.\n'+
+   '5. Has a real title — a non-empty <title>, not "Untitled" or "Document".';
+  return 'Build ONE self-contained HTML file from ONLY this plan. Do not add features outside it.\n\nTHE TASK: '+task+
+   '\n\nSPEC:\n'+specLines+
+   '\n\nDESTINATION: '+packet.destination+
+   '\n\nDONE CHECKS (every one must be visibly true in the app):\n'+crit+grade+
+   '\n\nHARD RULES:\n- Single HTML file. Vanilla JS and CSS only. No external requests.\n- Zero console errors on load.\n- Storage: localStorage can THROW on some setups — wrap EVERY storage access in try/catch with an in-memory fallback object. Never call it bare.\n- No placeholder, lorem ipsum, TODO, "coming soon", or dummy text anywhere.\n- A real <title> and a visible heading.\n- Return ONLY the HTML — no explanations, no fences.'}
+
 function evoFunnelPromptAll(fids,task,context){
   var per=fids.map(function(pid){
     var p=evoProf(pid),order=(p.run&&p.run.order)||EVO_QUESTIONS.map(function(q){return q.id});
