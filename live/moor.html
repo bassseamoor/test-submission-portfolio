@@ -3734,7 +3734,7 @@ drawSettings();applySet();applyPanel();
 </script>
 
 <script>/* ===== inlined: ui:live-updater (relay v3) ===== */
-window.__MOOR_LIVE_VER='20260926-017';
+window.__MOOR_LIVE_VER='20260926-018';
 (function(){
   // Relay v3: same connections as v2 (VER_URL + three bundle URLs, same document-swap).
   // Changes vs v2, all append-only:
@@ -4099,22 +4099,46 @@ function evoFunnelPrompt(pid,task,context){
 function evoBuildPrompt(packet,task){
   var specLines=Object.keys(packet.spec).map(function(k){return k+': '+packet.spec[k]}).join('\n');
   var crit=(packet.doneCriteria||[]).map(function(c){return '- '+c}).join('\n');
+  /* The exact rubric evoVerifyBuild grades against — the builder must see it. */
+  var keys=String((packet.spec&&(packet.spec.core||''))+' '+(packet.spec&&(packet.spec.kind||''))).toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>4&&!EVO_STOP[w]}).slice(0,4);
+  var need=Math.max(1,Math.ceil(keys.length/2));
+  var grade='\n\nHOW YOU WILL BE GRADED (an automated checker runs these 5 tests on your file — every one must pass):\n'+
+   '1. Zero errors on load — no JS errors or exceptions, nothing thrown.\n'+
+   '2. Renders real content — the page\'s visible text must be longer than 50 characters.\n'+
+   '3. Matches the plan — '+(keys.length?('the page\'s visible text must contain at least '+need+' of these exact words: '+keys.join(', ')+'. These words come from the plan above; work them into visible sentences verbatim (a short line restating what the app does works). Inflections do NOT count ("tap" does not match "tapping").'):'no keywords — automatically passes')+'\n'+
+   '4. No placeholder text — the words lorem, placeholder, TODO, "coming soon", "dummy text" must not appear in text or markup.\n'+
+   '5. Has a real title — a non-empty <title>, not "Untitled" or "Document".';
   return 'Build ONE self-contained HTML file from ONLY this plan. Do not add features outside it.\n\nTHE TASK: '+task+
    '\n\nSPEC:\n'+specLines+
    '\n\nDESTINATION: '+packet.destination+
-   '\n\nDONE CHECKS (every one must be visibly true in the app):\n'+crit+
+   '\n\nDONE CHECKS (every one must be visibly true in the app):\n'+crit+grade+
    '\n\nHARD RULES:\n- Single HTML file. Vanilla JS and CSS only. No external requests.\n- Zero console errors on load.\n- Storage: localStorage can THROW on some setups — wrap EVERY storage access in try/catch with an in-memory fallback object. Never call it bare.\n- No placeholder, lorem ipsum, TODO, "coming soon", or dummy text anywhere.\n- A real <title> and a visible heading.\n- Return ONLY the HTML — no explanations, no fences.'}
+function evoFunnelPromptAll(fids,task,context){
+  var per=fids.map(function(pid){
+    var p=evoProf(pid),order=(p.run&&p.run.order)||EVO_QUESTIONS.map(function(q){return q.id});
+    return '--- PLANNER "'+pid+'" ('+p.name+' — '+p.arch+') ---\n'+p.prompt+'\nThis planner answers ONLY these questions, in this order: '+order.join(', ')+'.'
+  }).join('\n\n');
+  return 'Three planners, one paste. Read the task once, then write THREE separate plans — one per planner below, each in that planner\'s voice, each answering only its listed questions.\n\nTHE TASK (frozen — answer it, never change it):\n'+task+
+   '\n\nBACKGROUND (read-only):\n'+context+
+   '\n\nQUESTIONS:\n'+evoQuizQuestionsText()+
+   '\n\n'+per+
+   '\n\nRETURN JSON ONLY — no explanations, no markdown fences, just the JSON: one object with exactly these three keys (use these exact ids):\n{\n'+
+   fids.map(function(pid){return '  "'+pid+'": {\n    "spec": {"kind": "...", "core": "...", "layout": "...", "platform": "...", "feel": "...", "who": "...", "never": "..."},\n    "destination": "one self-contained HTML file",\n    "doneCriteria": ["check 1 (under 140 chars)", "check 2", "check 3"],\n    "answers": [{"id": "kind", "text": "..."}]\n  }'}).join(',\n')+'\n}'+
+   '\nRules: every answer must serve the task; each plan needs at least 3 doneCriteria, each checkable and under 140 characters; include every answered question in "answers".'}
 
 /* ---------- parsing pasted answers ---------- */
 function evoExtractJSON(text){
   var t=String(text||'');
   var fenced=t.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if(fenced)t=fenced[1];
-  var s=t.indexOf('{');if(s<0)return null;
+  var si=t.indexOf('{'),ai=t.indexOf('[');
+  var isArr=ai>=0&&(si<0||ai<si),s=isArr?ai:si;
+  if(s<0)return null;
+  var open=isArr?'[':'{',close=isArr?']':'}';
   var depth=0,inStr=false,esc=false;
   for(var i=s;i<t.length;i++){var c=t[i];
     if(inStr){if(esc)esc=false;else if(c==='\\')esc=true;else if(c==='"')inStr=false}
-    else{if(c==='"')inStr=true;else if(c==='{')depth++;else if(c==='}'){depth--;if(depth===0){try{return JSON.parse(t.slice(s,i+1))}catch(e){return null}}}}}
+    else{if(c==='"')inStr=true;else if(c===open)depth++;else if(c===close){depth--;if(depth===0){try{return JSON.parse(t.slice(s,i+1))}catch(e){return null}}}}}
   return null}
 function evoNormalizePacket(obj){
   if(!obj||typeof obj!=='object')return null;
@@ -4336,6 +4360,8 @@ function evoOnClick(ev){
   var a=aEl.getAttribute('data-act'),t=aEl;
   var pid=t.getAttribute('data-pid');
   if(a==='copy-funnel')evoCopy(evoFunnelPrompt(pid,evoFlow.task,evoFlow.contextText));
+  else if(a==='copy-funnel-all')evoCopy(evoFunnelPromptAll(evoFlow.route.fids,evoFlow.task,evoFlow.contextText));
+  else if(a==='use-paste-all')evoUsePasteAll(t);
   else if(a==='ask-funnel')evoAskFunnel(pid,t);
   else if(a==='use-paste')evoUsePaste(pid,t);
   else if(a==='auto-funnel')evoAutoFunnel(pid,t);
@@ -4446,6 +4472,16 @@ function evoFunnelCard(f,pid){
     '<div data-fres="'+pid+'">'+(r?evoPacketSummary(r):'')+'</div></div>';
   return h;
 }
+function evoFunnelCardAll(f){
+  var names=f.route.fids.map(function(id){return evoProf(id).name}).join(', ');
+  var h='<div class="evo-card" data-fall><div class="evo-row"><div class="evo-grow"><b>⚡ All three at once</b></div><span class="evo-pill evo-ok">one paste</span></div>'+
+    '<p class="evo-mut">One prompt, one paste into your AI, one paste back — plans '+names+' in a single round trip. The cards below fill in automatically.</p>'+
+    '<button class="evo-btn sm" data-act="copy-funnel-all">📋 Copy combined prompt</button>'+
+    '<textarea class="evo-ta" data-fallpaste placeholder="Paste the AI\'s answer (all three plans) here…"></textarea>'+
+    '<div class="evo-row"><button class="evo-btn sm ghost" data-act="use-paste-all">Use these answers</button></div>'+
+    '<div data-fallres></div></div>';
+  return h;
+}
 function evoPacketSummary(r){
   var bad=r.checks.filter(function(c){return !c[1]});
   var h='<div style="margin-top:8px">';
@@ -4459,6 +4495,7 @@ function evoPacketSummary(r){
 function evoStageFunnels(f){
   var h='<div class="evo-stage">1 · three plans</div>';
   h+='<p class="evo-small">Router: <b>'+f.route.fids.map(function(id){return evoProf(id).name}).join(' vs ')+'</b> <span class="evo-mut">— '+evoEsc(f.route.why)+'</span></p>';
+  h+=evoFunnelCardAll(f);
   h+=evoModePicker();
   f.route.fids.forEach(function(pid){h+=evoFunnelCard(f,pid)});
   var ready=f.results.filter(function(r){return r.passRate===1}).length;
@@ -4478,6 +4515,29 @@ function evoUsePaste(pid,btn){
   f.results=f.results.filter(function(x){return x.pid!==pid});f.results.push(r);
   evoSay('FUNNEL '+evoProf(pid).name,'TRIAGE','plan ready: '+pkt.answers.length+' answers via your AI',
     'triage reads back: plan '+(r.passRate===1?'valid — all 6 checks pass':'INVALID — '+r.checks.filter(function(c){return !c[1]}).map(function(c){return c[0]}).join(', ')));
+  evoRenderLoop();
+}
+function evoUsePasteAll(btn){
+  var f=evoFlow,card=btn.closest('[data-fall]'),ta=card.querySelector('[data-fallpaste]'),box=card.querySelector('[data-fallres]');
+  var obj=evoExtractJSON(ta.value);
+  function fail(m){box.innerHTML='<div class="evo-check"><span class="evo-fail">✗</span> '+evoEsc(m)+'</div>'}
+  if(!obj){fail('Could not find the three plans in that paste. Copy the combined prompt again and make sure the AI returns the JSON object.');return}
+  var plans=[];
+  if(Array.isArray(obj)){obj.forEach(function(o,i){plans.push({pid:String(o.planner||o.pid||o.id||f.route.fids[i]||('plan'+i)),pkt:o})})}
+  else{f.route.fids.forEach(function(pid){if(obj[pid])plans.push({pid:pid,pkt:obj[pid]})})}
+  if(plans.length!==f.route.fids.length){fail('Found '+plans.length+' of '+f.route.fids.length+' plans. The JSON needs one plan per planner id: '+f.route.fids.join(', ')+'.');return}
+  var bad=[];
+  plans.forEach(function(pl){
+    var pkt=evoNormalizePacket(pl.pkt);
+    if(!pkt){bad.push(pl.pid);return}
+    var checks=evoPacketChecks(pkt,f.task);
+    var r={pid:pl.pid,packet:pkt,answers:pkt.answers,conflicts:[],stats:{asked:pkt.answers.length,conflicts:0},
+      passRate:checks.filter(function(c){return c[1]}).length/checks.length,checks:checks,source:'pasted'};
+    f.results=f.results.filter(function(x){return x.pid!==pl.pid});f.results.push(r);
+    evoSay('FUNNEL '+evoProf(pl.pid).name,'TRIAGE','plan ready: '+pkt.answers.length+' answers via your AI (combined paste)',
+      'triage reads back: plan '+(r.passRate===1?'valid — all 6 checks pass':'INVALID — '+r.checks.filter(function(c){return !c[1]}).map(function(c){return c[0]}).join(', ')));
+  });
+  if(bad.length){fail('These plans were not valid (need spec, destination, doneCriteria): '+bad.join(', ')+'. Paste again.');return}
   evoRenderLoop();
 }
 function evoAutoFunnel(pid){
@@ -4728,6 +4788,7 @@ setTimeout(evoWireAll,1500);
 window.evoOpen=evoOpen;
 window.evoVerify=evoVerifyBuild;
 })();
+
 </script>
 </body>
 </html>
